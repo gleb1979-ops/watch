@@ -189,7 +189,7 @@ button{font:inherit;color:inherit}
 .cat-count{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
 [hidden]{display:none !important}
 
-:root,:root[data-theme="dark"]{--bg:#101213;--surface:#191d1e;--ink:#f3eee4;--muted:#b4b6b2;--line:#343a39;--accent:#d7b67a;--accent-ink:#17140e;--focus:#e6c994;--track:#272e2d;color-scheme:dark}
+:root,:root:not([data-theme="light"]),:root[data-theme="dark"]{--bg:#101213;--surface:#191d1e;--ink:#f3eee4;--muted:#b4b6b2;--line:#343a39;--accent:#d7b67a;--accent-ink:#17140e;--focus:#e6c994;--track:#272e2d;color-scheme:dark}
 body{margin:0;background:radial-gradient(ellipse at 85% 5%,#34332960,transparent 46%),var(--bg);padding:0 24px 56px;overflow-wrap:break-word}
 .wrap{max-width:1160px}.topbar{min-height:92px;border-bottom:1px solid var(--line);margin-bottom:42px;flex-wrap:wrap}.brand{font-size:1.1rem;letter-spacing:.25em;color:var(--accent)}
 a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;min-height:50px;transition:background .2s,transform .2s}.btn:hover{transform:translateY(-1px)}.btn-primary{background:var(--accent);color:var(--accent-ink)}
@@ -779,10 +779,10 @@ window.addEventListener('pagehide',stopLive);
 document.addEventListener('visibilitychange',function(){if(document.hidden)stopLive();});
 if(window.parent!==window){
  document.body.dataset.embed='true'; document.body.style.minHeight='0'; document.documentElement.style.minHeight='0';
- function notifyHeight(){parent.postMessage({type:'watch-height',height:document.querySelector('.wrap').getBoundingClientRect().height},location.origin);}
+ function notifyHeight(){parent.postMessage({type:'watch-height',height:document.querySelector('.wrap').getBoundingClientRect().height},new URL(document.baseURI).origin);}
  new ResizeObserver(notifyHeight).observe(document.body);
- window.addEventListener('message',function(e){if(e.source!==parent||e.origin!==location.origin)return; if(e.data.type==='watch-owner')show('owner'); if(e.data.type==='watch-catalog'){show('cat');reloadList();} if(e.data.type==='watch-stop'){stopLive();}});
- parent.postMessage({type:'watch-ready'},location.origin);
+ window.addEventListener('message',function(e){if(e.source!==parent||e.origin!==new URL(document.baseURI).origin)return; if(e.data.type==='watch-owner')show('owner'); if(e.data.type==='watch-catalog'){show('cat');reloadList();} if(e.data.type==='watch-stop'){stopLive();}});
+ parent.postMessage({type:'watch-ready'},new URL(document.baseURI).origin);
 }
 
 initStore();
