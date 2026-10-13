@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Подбор часов</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column for the quiz; results and try-on split into two columns on wide screens. */
+:root{
+  --bg:#E8ECEE; --surface:#F5F7F8; --ink:#10262E; --muted:#56696F; --line:#C6CFD3;
+  --accent:#8F5F14; --accent-ink:#FFFFFF; --focus:#1E6F8C; --track:#D3DADD;
+  --f-display:'Jost','Futura','Century Gothic',system-ui,sans-serif;
+  --f-body:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B171C; --surface:#12232A; --ink:#E7EEF0; --muted:#8CA1A9; --line:#25393F;
+    --accent:#E0AE5E; --accent-ink:#1A1204; --focus:#6FC3DE; --track:#223840; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B171C; --surface:#12232A; --ink:#E7EEF0; --muted:#8CA1A9; --line:#25393F;
+  --accent:#E0AE5E; --accent-ink:#1A1204; --focus:#6FC3DE; --track:#223840; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;padding-inline:16px;padding-block:8px 48px;-webkit-text-size-adjust:100%}
+h1,h2,h3{font-family:var(--f-display);font-weight:500;margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+button{font:inherit;color:inherit}
+.wrap{max-width:960px;margin-inline:auto}
+.narrow{max-width:620px}
+.mono{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.02em;color:var(--muted);font-variant-numeric:tabular-nums}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:10px 18px}
+.brand{font-family:var(--f-display);font-weight:500;font-size:.82rem;letter-spacing:.2em;text-transform:uppercase}
+.link{background:none;border:0;padding:8px 0;color:var(--muted);cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-size:.9rem}
+.link:hover{color:var(--ink)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 20px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);cursor:pointer;font-weight:600;font-size:.95rem}
+.btn:hover{border-color:var(--muted)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn-primary:hover{filter:brightness(1.06);border-color:var(--accent)}
+
+/* Intro */
+.hero h1{font-size:clamp(2.1rem,8vw,3.6rem);line-height:1.04;margin-bottom:16px}
+.hero p.lead{font-size:1.06rem;color:var(--muted);max-width:46ch;margin-bottom:24px}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-block:8px 28px;max-width:560px}
+.trio figure{margin:0;display:flex;flex-direction:column;gap:4px;min-width:0}
+.trio svg{width:100%;height:auto;display:block}
+.trio figcaption{display:flex;justify-content:space-between;gap:6px;border-top:1px solid var(--line);padding-top:6px}
+.cta-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.cta-row .btn{flex:1 1 180px;max-width:260px}
+.cta-note{margin-top:14px;max-width:46ch}
+.catlink{color:var(--ink);font-size:.95rem;text-underline-offset:3px}
+.picker-empty{font-size:.9rem;color:var(--muted);padding:10px 2px}
+
+/* Quiz */
+.ticks{display:flex;gap:4px;align-items:flex-end;height:22px;margin-bottom:10px}
+.ticks i{flex:1;height:10px;background:var(--track);border-radius:1px;transition:height .2s,background .2s}
+.ticks i.done{background:var(--accent)}
+.ticks i.now{height:22px;background:var(--accent)}
+.qhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px}
+.q-title{font-size:clamp(1.55rem,5.5vw,2.1rem);line-height:1.12;margin-bottom:20px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;padding:14px 16px;min-height:58px;background:var(--surface);border:1px solid var(--line);border-radius:8px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.opt:hover{border-color:var(--muted)}
+.opt .l{font-weight:600}
+.opt .s{font-size:.85rem;color:var(--muted)}
+.opt.sel{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.qfoot{margin-top:14px;min-height:40px}
+.fade{animation:fade .25s ease both}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Results */
+.res-head{margin-bottom:18px}
+.res-head h2{font-size:clamp(1.8rem,6vw,2.6rem);line-height:1.08;margin-bottom:6px}
+.top{display:grid;grid-template-columns:1fr;gap:18px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.top .pic{max-width:260px;width:100%;margin-inline:auto;min-width:0}
+.top .pic svg,.mini .pic svg{width:100%;height:auto;display:block}
+.top .info{min-width:0;display:flex;flex-direction:column;gap:12px}
+.rank{display:flex;align-items:baseline;gap:10px}
+.pct{font-family:var(--f-mono);font-size:2.2rem;font-weight:500;color:var(--accent);line-height:1;font-variant-numeric:tabular-nums}
+.name{font-family:var(--f-display);font-size:1.7rem;font-weight:500;line-height:1.1}
+.blurb{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.8rem;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--bg)}
+.specs{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:0;font-size:.9rem}
+.specs dt{color:var(--muted)}
+.specs dd{margin:0;font-weight:600;min-width:0}
+.sub{font-family:var(--f-display);font-weight:500;font-size:1.2rem;margin-block:28px 12px}
+.minis{display:grid;grid-template-columns:1fr;gap:12px}
+.mini{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px}
+.mini .pic{min-width:0}
+.mini .body{min-width:0;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.mini .name{font-size:1.2rem}
+.duo{display:grid;grid-template-columns:1fr;gap:4px 28px}
+.scale{padding-top:6px}
+.track{position:relative;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--track),var(--line));margin-block:10px 8px}
+.track .band{position:absolute;top:-4px;bottom:-4px;border-radius:7px;background:color-mix(in srgb,var(--accent) 28%,transparent);border:1px solid var(--accent)}
+.track .dot{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:var(--ink);border:3px solid var(--bg)}
+.ends{display:flex;justify-content:space-between;gap:8px;margin-bottom:8px}
+.cal{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.cal li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);border-left-width:4px}
+.cal li.ok{border-left-color:#2f8a57}
+.cal li.mid{border-left-color:#c18a1e}
+.cal li.no{border-left-color:#b5483d}
+.fit{font-size:.9rem;min-height:1.4em}
+.ctl.wr{grid-template-columns:150px 1fr}
+.ctl.wr input{min-height:40px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;width:100%;min-width:0}
+@media (min-width:720px){.duo{grid-template-columns:1fr 1fr}}
+.tech{margin-top:2px;border-top:1px solid var(--line);padding-top:8px}
+.tech summary{cursor:pointer;font-weight:600;font-size:.9rem;padding-block:4px}
+.tech .specs{margin-block:8px}
+.src{font-size:.82rem;color:var(--muted);overflow-wrap:anywhere}
+.note{font-size:.8rem;color:var(--muted);margin-top:18px;max-width:70ch}
+.cut-title{font-size:1.6rem;margin-block:4px 6px}
+.cut-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-block:14px}
+.cut-grid canvas{width:100%;height:auto;max-width:520px;display:block;border:1px solid var(--line);border-radius:10px;touch-action:none;background:var(--surface)}
+.cut-grid canvas#cp{background-color:#e9ecee;background-image:linear-gradient(45deg,#cfd5d8 25%,transparent 25%,transparent 75%,#cfd5d8 75%),linear-gradient(45deg,#cfd5d8 25%,transparent 25%,transparent 75%,#cfd5d8 75%);background-size:20px 20px;background-position:0 0,10px 10px}
+.cut-ctl{display:flex;flex-direction:column;gap:12px;max-width:520px}
+.chk-row{display:flex;align-items:center;gap:10px;font-size:.9rem}
+.pick img{width:100%;height:56px;object-fit:contain;display:block}
+@media (min-width:720px){.cut-grid{grid-template-columns:1fr 1fr}}
+.again{margin-top:22px}
+.multi-hint{margin:-10px 0 14px}
+.next-row{margin-top:16px}
+.btn:disabled{opacity:.45;cursor:default}
+.specs dd{font-weight:500}
+
+/* Try-on */
+.back{margin-bottom:6px}
+.try-grid{display:grid;grid-template-columns:1fr;gap:18px}
+.stage{position:relative;width:100%;max-width:480px;margin-inline:auto;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#cfd6d9;line-height:0}
+.stage canvas{width:100%;height:auto;aspect-ratio:3/4;display:block;touch-action:none;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.badge{position:absolute;left:10px;top:10px;line-height:1.2;background:rgba(16,38,46,.78);color:#fff;font-family:var(--f-mono);font-size:.72rem;padding:5px 9px;border-radius:4px;letter-spacing:.04em}
+.panel{min-width:0;display:flex;flex-direction:column;gap:14px}
+.panel h2{font-size:1.7rem;line-height:1.1}
+.picker{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-inline:-2px;padding-inline:2px;scroll-snap-type:x proximity}
+.pick{flex:0 0 76px;scroll-snap-align:start;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 4px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.pick svg{width:100%;height:auto;display:block}
+.pick span{font-size:.68rem;line-height:1.15;text-align:center;color:var(--muted);max-width:100%;overflow-wrap:anywhere}
+.pick[aria-selected="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.pick[aria-selected="true"] span{color:var(--ink);font-weight:600}
+.photo-actions,.row{display:flex;flex-wrap:wrap;gap:10px}
+.photo-actions .btn{flex:1 1 150px}
+.ctl{display:grid;grid-template-columns:84px 1fr 52px;align-items:center;gap:10px;font-size:.9rem}
+.ctl output{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);text-align:right}
+.ctl input[type=range]{width:100%;accent-color:var(--accent);min-width:0}
+.hint{font-size:.85rem;color:var(--muted)}
+.toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:420px;margin-inline:auto;background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:8px;font-size:.9rem;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .2s,transform .2s}
+.toast.on{opacity:1;transform:none}
+
+@media (min-width:720px){
+  .top{grid-template-columns:240px 1fr;padding:22px;gap:28px}
+  .minis{grid-template-columns:1fr 1fr}
+  .try-grid{grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:32px;align-items:start}
+  .stage{margin-inline:0}
+}
+@media (prefers-reduced-motion:reduce){
+  .fade{animation:none}
+  .ticks i,.opt,.toast{transition:none}
+}
+[hidden]{display:none !important}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="topbar">
+    <div class="brand">Подбор часов</div>
+    <button class="link" id="btnRestart" type="button" hidden>Начать заново</button>
+  </header>
+
+  <main>
+    <section id="v-intro" class="hero narrow">
+      <h1>Подберём часы под&nbsp;ваш стиль</h1>
+      <p class="lead">Расскажите, как вы одеваетесь и куда ходите: на работу, в ресторан, в театр. Подберём часы, которые сочетаются с вашим гардеробом, и примерим их на вашей руке.</p>
+      <div class="trio" id="trio" aria-hidden="true"></div>
+      <div class="cta-row">
+        <button class="btn btn-primary" id="btnStart" type="button">Подобрать часы</button>
+        <button class="btn" id="btnOwn" type="button">Свои часы</button>
+      </div>
+      <p class="mono cta-note">Подбор: 10 вопросов, около 2 минут. Свои часы: сфотографируйте их и примерьте на руке.</p>
+      <p class="cta-note"><a class="catlink" href="catalog.html">Каталог моих часов →</a></p>
+    </section>
+
+    <section id="v-quiz" class="narrow" hidden>
+      <div class="ticks" id="ticks" aria-hidden="true"></div>
+      <div class="qhead">
+        <span class="mono" id="qcount"></span>
+        <span class="mono" id="qkind"></span>
+      </div>
+      <div id="qbody"></div>
+      <div class="qfoot"><button class="link" id="btnBack" type="button">← Назад</button></div>
+    </section>
+
+    <section id="v-result" hidden></section>
+
+    <section id="v-try" hidden>
+      <button class="link back" id="btnToResult" type="button">← К подборке</button>
+      <div class="try-grid">
+        <div class="stage">
+          <canvas id="cv" width="1800" height="2400" aria-label="Примерка часов на руке"></canvas>
+          <video id="vid" playsinline muted style="display:none"></video>
+          <span class="badge" id="demoBadge">ДЕМО-РУКА</span>
+        </div>
+        <div class="panel">
+          <div>
+            <h2 id="tryName"></h2>
+            <p class="mono" id="tryMeta"></p>
+          </div>
+          <div class="picker" id="picker" role="listbox" aria-label="Модели для примерки"></div>
+          <div class="photo-actions">
+            <button class="btn btn-primary" id="btnLive" type="button">Живая камера</button>
+            <button class="btn btn-primary" id="btnShot" type="button" hidden>Снять кадр</button>
+            <button class="btn" id="btnFlip" type="button" hidden>Сменить камеру</button>
+            <button class="btn" id="btnCam" type="button">Сфотографировать</button>
+            <button class="btn" id="btnGal" type="button">Выбрать фото</button>
+            <button class="btn" id="btnCut" type="button">Добавить свои часы из фото</button>
+          </div>
+          <input id="fileCut" type="file" accept="image/*" hidden>
+          <input id="fileCam" type="file" accept="image/*" capture="environment" hidden>
+          <input id="fileGal" type="file" accept="image/*" hidden>
+          <div class="ctl"><label for="rngScale">Размер</label><input id="rngScale" type="range" min="40" max="320" value="150"><output id="outScale">1.5×</output></div>
+          <div class="ctl"><label for="rngRot">Поворот</label><input id="rngRot" type="range" min="-180" max="180" value="0"><output id="outRot">0°</output></div>
+          <div class="row">
+            <button class="btn" id="btnReset" type="button">Сбросить положение</button>
+            <button class="btn" id="btnSave" type="button">Сохранить снимок</button>
+          </div>
+          <div class="ctl wr"><label for="inWrist">Обхват запястья, см</label><input id="inWrist" type="number" inputmode="decimal" min="10" max="26" step="0.5" placeholder="например, 17"></div>
+          <p class="fit" id="fitNote"></p>
+          <p class="hint">Перетащите часы на запястье. Двумя пальцами можно менять размер и поворот. Лучше снимать руку сверху, ладонью вниз, при хорошем свете.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="v-cut" hidden>
+      <button class="link back" id="btnCutBack" type="button">← К примерке</button>
+      <h2 class="cut-title">Вырезать часы из фото</h2>
+      <p class="hint">Сфотографируйте часы сверху на однотонном фоне, например на белой бумаге. Обведите часы рамкой, сайт уберёт фон.</p>
+      <div class="cut-grid">
+        <div><p class="mono">1. ОБВЕДИТЕ ЧАСЫ</p><canvas id="cc" width="300" height="300" aria-label="Фото часов с рамкой"></canvas></div>
+        <div><p class="mono">2. РЕЗУЛЬТАТ</p><canvas id="cp" class="chk" width="800" height="800" aria-label="Вырезанные часы"></canvas></div>
+      </div>
+      <div class="cut-ctl">
+        <div class="ctl"><label for="rngTol">Допуск фона</label><input id="rngTol" type="range" min="10" max="140" value="45"><output id="outTol">45</output></div>
+        <label class="chk-row"><input id="chkRound" type="checkbox"> Оставить только круг (если фон пёстрый)</label>
+        <p class="fit" id="cutNote"></p>
+        <div class="row">
+          <button class="btn" id="btnCutAll" type="button">Весь кадр</button>
+          <button class="btn btn-primary" id="btnCutUse" type="button" disabled>Примерить на руке</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- Каталог ---------- */
+var MET={
+  steel:{hi:'#f3f6f7',mid:'#bcc4c9',lo:'#6f7a82',n:'сталь'},
+  gold:{hi:'#f7e6a6',mid:'#d5aa49',lo:'#8a6320',n:'жёлтое золото'},
+  rose:{hi:'#f9ddd2',mid:'#dba392',lo:'#95604f',n:'розовое золото'},
+  black:{hi:'#6a7078',mid:'#2d3136',lo:'#0f1113',n:'чёрное покрытие'}
+};
+var DIAL={white:'#f2f0ea',pearl:'#e8e6e1',champagne:'#e3d5b2',blush:'#f0d9d3',black:'#14171a',burgundy:'#4d1b27',blue:'#1c3c6c',green:'#1b5845'};
+var DGROUP={white:'light',pearl:'light',champagne:'light',blush:'light',black:'dark',burgundy:'dark',blue:'color',green:'color'};
+var STYLE_N={dress:'классика',casual:'на каждый день',sport:'спорт',minimal:'минимализм',vintage:'ретро',smart:'умные часы'};
+var MOVE_N={quartz:'Кварц',auto:'Механика с автоподзаводом',hand:'Механика с ручным заводом',smart:'Умные часы'};
+var STRAP_N={leather:'Кожа',metal:'Стальной браслет',mesh:'Миланский браслет',fabric:'Текстиль',silicone:'Силикон'};
+var TIER_N=['','Доступный сегмент','Средний сегмент','Выше среднего','Премиум'];
+var GEN_N={m:'Для него',f:'Для неё',any:'Для него и для неё'};
+
+var W=[
+ {id:'s11',brand:'Apple',name:'Apple Watch Series 11',g:'u',style:'smart',mm:46,shape:'smart',digital:1,metal:'rose',dial:'black',strap:'silicone',sc:'#e9c5bb',move:'smart',tier:3,blurb:'Умные часы с пульсом, уведомлениями и тренировками на каждый день.',
+  spec:[['Размеры корпуса','42 и 46 мм, толщина 9,7 мм'],['Материал','алюминий или титан'],['Влагозащита','50 м'],['Цвета корпуса','розовое золото, серебро, серый космос, чёрный; титан: золото, натуральный, графит']],
+  url:'https://www.apple.com/apple-watch-series-11/specs/',src:'apple.com'},
+ {id:'ultra3',brand:'Apple',name:'Apple Watch Ultra 3',g:'m',style:'sport',mm:49,shape:'smart',digital:1,metal:'steel',dial:'black',strap:'silicone',sc:'#f0702a',move:'smart',tier:4,blurb:'Титановые умные часы для спорта, походов и океана.',
+  spec:[['Размер корпуса','49 × 44 мм, толщина 12 мм'],['Материал','титан 5 класса'],['Влагозащита','100 м'],['Вес','около 62 г'],['Цвета','натуральный, чёрный']],
+  url:'https://www.apple.com/apple-watch-ultra-3/specs/',src:'apple.com'},
+ {id:'w8',brand:'Samsung',name:'Samsung Galaxy Watch8',g:'u',style:'smart',mm:40,shape:'round',digital:1,metal:'steel',dial:'black',strap:'silicone',sc:'#cfd5da',move:'smart',tier:2,blurb:'Лёгкие умные часы на Wear OS для здоровья, сна и каждого дня.',
+  spec:[['Размеры корпуса','40 и 44 мм, толщина 8,6 мм'],['Вес','30 г (40 мм) и 34 г (44 мм)'],['Влагозащита','50 м, IP68']],
+  url:'https://devices.vodafone.com.au/samsung/galaxy-watch8-wear-os-6/specifications/',src:'vodafone.com.au'},
+ {id:'w8c',brand:'Samsung',name:'Samsung Galaxy Watch8 Classic',g:'u',style:'smart',mm:46,shape:'round',digital:1,metal:'steel',dial:'black',strap:'leather',sc:'#e8e4dc',move:'smart',tier:3,blurb:'Умные часы в классическом круглом корпусе из стали с сапфировым стеклом.',
+  spec:[['Корпус','46 × 46,4 мм, толщина 10,6 мм, сталь'],['Стекло','сапфировое'],['Вес','63,5 г'],['Влагозащита','50 м, IP68, MIL-STD-810H'],['Ремешок','гибридная эко-кожа']],
+  url:'https://www.shidirect.com/product/50507824/Samsung-Galaxy-Watch8-Classic',src:'shidirect.com'},
+ {id:'seiko5',brand:'Seiko',name:'Seiko 5 Sports SRPD',g:'m',style:'casual',mm:42.5,shape:'round',metal:'steel',dial:'black',strap:'metal',sc:'',move:'auto',tier:2,blurb:'Механические часы с автоподзаводом, которые не боятся воды и ударов.',
+  spec:[['Корпус','42,5 мм, толщина 13 мм, сталь'],['Механизм','Caliber 4R36, автоподзавод'],['Запас хода','41 час'],['Влагозащита','100 м'],['Ширина ушек','22 мм'],['Цена','около 295 $ по каталогу']],
+  url:'https://www.loupe.watch/watch/seiko/srpd61k1',src:'loupe.watch (один источник)'},
+ {id:'prx',brand:'Tissot',name:'Tissot PRX Powermatic 80',g:'m',style:'dress',mm:40,shape:'round',metal:'steel',dial:'black',strap:'metal',sc:'',move:'auto',tier:3,blurb:'Швейцарская механика со стальным браслетом, одинаково хороша с костюмом и джинсами.',
+  spec:[['Корпус','40 мм, сталь'],['Механизм','Powermatic 80, автоподзавод'],['Запас хода','80 часов'],['Влагозащита','100 м'],['Ремешок','кожа и сменный браслет'],['Цена','около 412 £ в магазине']],
+  url:'https://www.beaverbrooks.co.uk/0129597/Tissot-PRX-Powermatic-80-40mm-Automatic-Mens-Watch/p',src:'beaverbrooks.co.uk'},
+ {id:'bambino',brand:'Orient',name:'Orient Bambino Version 7',g:'m',style:'dress',mm:40.5,shape:'round',metal:'steel',dial:'white',strap:'leather',sc:'#6a4429',move:'auto',tier:2,blurb:'Классические механические часы с белым циферблатом и золотистыми стрелками.',
+  spec:[['Корпус','40,5 мм, толщина 12,3 мм, сталь'],['Механизм','F6724, автоподзавод и ручной завод'],['Запас хода','около 40 часов'],['Влагозащита','30 м'],['Ремешок','коричневая кожа, 21 мм'],['Цена','около 330–450 $']],
+  url:'https://orientwatchusa.com/products/ra-ac0028s30b',src:'orientwatchusa.com'},
+ {id:'khaki',brand:'Hamilton',name:'Hamilton Khaki Field Mechanical',g:'u',style:'vintage',mm:38,shape:'round',metal:'steel',dial:'black',strap:'fabric',sc:'#4b5640',move:'hand',tier:3,blurb:'Полевые часы в военном стиле с ручным заводом, как носили солдаты.',
+  spec:[['Корпус','38 мм, сталь'],['Механизм','H-50, ручной завод'],['Влагозащита','50 м'],['Ширина ушек','20 мм'],['Циферблат','чёрный матовый']],
+  url:'https://watchbase.com/hamilton/khaki-field/h69439931',src:'watchbase.com'},
+ {id:'ga2100',brand:'Casio',name:'Casio G-Shock GA-2100',g:'m',style:'sport',mm:45.4,shape:'rsq',metal:'black',dial:'black',strap:'silicone',sc:'#17191b',move:'quartz',tier:1,blurb:'Ударопрочные кварцевые часы в лёгком корпусе из карбона.',
+  spec:[['Размер','48,5 × 45,4 мм, толщина 11,8 мм'],['Материал','карбон и смола'],['Вес','51 г'],['Влагозащита','200 м, ударопрочные'],['Батарея','около 3 лет'],['Цена','около 110 $']],
+  url:'https://www.g-central.com/?p=61401',src:'g-central.com'},
+ {id:'dw',brand:'Daniel Wellington',name:'Daniel Wellington Petite Melrose',g:'f',style:'minimal',mm:32,shape:'round',metal:'rose',dial:'blush',strap:'mesh',sc:'',move:'quartz',tier:2,blurb:'Тонкие женские часы с перламутровым циферблатом и браслетом из розового золота.',
+  spec:[['Корпус','32 мм, сталь'],['Механизм','японский кварц'],['Влагозащита','30 м'],['Циферблат','розовый перламутр'],['Браслет','стальная сетка, розовое золото']],
+  url:'https://www.kamalwatch.com/products/daniel-wellington-petite-melrose-pearl-dw00100516',src:'kamalwatch.com'}
+];
+var BY={}; W.forEach(function(w){BY[w.id]=w;});
+
+/* ---------- Как часы сочетаются с одеждой ----------
+   f: формальность 1 (спорт) … 5 (вечер, костюм); occ: поводы; look: характер; pal: цветовая гамма; wear: с чем носить */
+var META={
+ s11:{f:2,occ:['daily','work','sport'],look:'smart',pal:['neutral','warm','bright'],wear:'К трикотажу, джинсам, платью и спортивной одежде: уведомления, пульс и тренировки.'},
+ ultra3:{f:1,occ:['sport','weekend'],look:'sport',pal:['neutral','bright'],wear:'К спортивной одежде, куртке и походной экипировке: океан, горы, длинные тренировки.'},
+ w8:{f:2,occ:['daily','work','sport'],look:'smart',pal:['neutral','cool'],wear:'К футболке, рубашке, джинсам и спортивной одежде: удобно с утра до вечера.'},
+ w8c:{f:3,occ:['work','daily','dinner'],look:'smart',pal:['neutral','cool'],wear:'К рубашке, пиджаку без галстука и джинсам: строгий вид и умные функции.'},
+ seiko5:{f:2.2,occ:['daily','weekend','sport'],look:'statement',pal:['cool','neutral'],wear:'К джинсам, рубашке навыпуск и куртке: на каждый день и выходные.'},
+ prx:{f:3.8,occ:['work','dinner','daily'],look:'statement',pal:['cool','neutral'],wear:'К костюму, рубашке и тёмным джинсам: офис, ресторан, повседневный образ.'},
+ bambino:{f:4.6,occ:['work','dinner','event'],look:'subtle',pal:['warm','neutral'],wear:'К костюму и рубашке: деловые встречи, ресторан, театр.'},
+ khaki:{f:2.8,occ:['daily','weekend','work'],look:'statement',pal:['warm','neutral'],wear:'К рубашке, свитеру, джинсам и куртке: повседневный образ в военном духе.'},
+ ga2100:{f:1.2,occ:['sport','weekend','daily'],look:'sport',pal:['neutral','bright'],wear:'К худи, футболке и спортивной одежде: тренировки, поездки, прогулки.'},
+ dw:{f:3.8,occ:['work','daily','dinner','event'],look:'subtle',pal:['warm','neutral'],wear:'К блузке, платью, жакету и джинсам: офис, ресторан, театр.'}
+};
+var CLO={suit:4.5,shirt:3.5,blouse:3.5,dress:4,jacket:4.5,polo:2.5,tee:2,knit:2.5,hoodie:1.5,jeans:2.5,trousers:4,skirt:3.5,shorts:1.5,sportwear:1,whole:4.5};
+var CLO_N={suit:'костюм',shirt:'рубашка',blouse:'блузка',dress:'платье',jacket:'жакет',polo:'поло',tee:'футболка',knit:'трикотаж',hoodie:'худи',jeans:'джинсы',trousers:'брюки',skirt:'юбка',shorts:'шорты',sportwear:'спортивные брюки',whole:'платье или костюм'};
+var OCC_N={work:'работа',daily:'каждый день',dinner:'ресторан',event:'театр и торжества',weekend:'выходные',sport:'спорт и поездки'};
+var STY={
+ elegant:{n:'элегантный',tags:['dress','vintage'],f:4.8},
+ business:{n:'деловой',tags:['dress','minimal'],f:4},
+ casual:{n:'повседневный',tags:['casual','minimal'],f:2.5},
+ sporty:{n:'спортивный',tags:['sport','smart','casual'],f:1.5},
+ retro:{n:'ретро',tags:['vintage','dress'],f:3.8},
+ modern:{n:'современный минимализм',tags:['minimal','smart'],f:3}
+};
+var LOOK_N={subtle:'Сдержанный вид, не бросается в глаза',statement:'Часы-акцент, которые заметны в образе',sport:'Спортивный и практичный характер',smart:'Умные функции на руке'};
+
+var OCCF={work:4,daily:2.5,dinner:4.2,event:5,weekend:2.2,sport:1};
+var ARCH={elegant:'Вечерний классик',business:'Деловой стратег',casual:'Городской свободный стиль',sporty:'Активный динамик',retro:'Ценитель ретро',modern:'Спокойный минималист'};
+var SLEEVE={suit:['#2f3a4a','#f4f4f1'],jacket:['#2f3a4a','#f4f4f1'],shirt:['#f2f2ee',null],blouse:['#f2f2ee',null],knit:['#b0885f',null],hoodie:['#59616b',null]};
+
+/* ---------- Вопросы ---------- */
+var TOPS={
+ m:[{l:'Костюм или пиджак',v:'suit'},{l:'Рубашка',v:'shirt'},{l:'Поло или футболка',v:'polo'},{l:'Свитер или трикотаж',v:'knit'},{l:'Худи или спортивная куртка',v:'hoodie'}],
+ f:[{l:'Платье',v:'dress'},{l:'Блузка',v:'blouse'},{l:'Жакет или пиджак',v:'jacket'},{l:'Футболка или топ',v:'tee'},{l:'Свитер или трикотаж',v:'knit'},{l:'Худи или спортивная куртка',v:'hoodie'}],
+ any:[{l:'Костюм, пиджак или жакет',v:'suit'},{l:'Рубашка или блузка',v:'shirt'},{l:'Платье',v:'dress'},{l:'Футболка, поло или топ',v:'tee'},{l:'Свитер или трикотаж',v:'knit'},{l:'Худи или спортивная куртка',v:'hoodie'}]
+};
+var BOTTOMS={
+ m:[{l:'Джинсы',v:'jeans'},{l:'Классические брюки',v:'trousers'},{l:'Шорты',v:'shorts'},{l:'Спортивные брюки',v:'sportwear'}],
+ f:[{l:'Джинсы',v:'jeans'},{l:'Брюки',v:'trousers'},{l:'Юбка',v:'skirt'},{l:'Леггинсы или спортивные брюки',v:'sportwear'},{l:'Шорты',v:'shorts'},{l:'Чаще ношу платье целиком',v:'whole'}],
+ any:[{l:'Джинсы',v:'jeans'},{l:'Классические брюки или юбка',v:'trousers'},{l:'Шорты',v:'shorts'},{l:'Спортивные брюки или леггинсы',v:'sportwear'},{l:'Платье или костюм целиком',v:'whole'}]
+};
+var Q=[
+ {key:'gender',kind:'Для кого',t:'Для кого подбираем часы?',o:[
+   {l:'Для мужчины',v:'m'},{l:'Для женщины',v:'f'},{l:'Не важно',s:'покажем и мужские, и женские',v:'any'}]},
+ {key:'style',kind:'Стиль',t:'Какой у вас стиль в одежде?',o:[
+   {l:'Элегантный',s:'вечерние вещи, классика, аккуратные линии',v:'elegant'},
+   {l:'Деловой',s:'костюм, рубашка, строгие цвета',v:'business'},
+   {l:'Повседневный',s:'джинсы, футболки, удобные вещи',v:'casual'},
+   {l:'Спортивный',s:'кроссовки, худи, активный день',v:'sporty'},
+   {l:'Ретро и винтаж',s:'вещи с историей, акцент на деталях',v:'retro'},
+   {l:'Современный минимализм',s:'простые линии, нейтральные цвета',v:'modern'}]},
+ {key:'occ',kind:'Поводы',multi:true,max:3,t:'Куда вы чаще всего надеваете часы?',o:[
+   {l:'Работа и деловые встречи',v:'work'},
+   {l:'Каждый день',s:'дела, прогулки, встречи с друзьями',v:'daily'},
+   {l:'Ресторан и свидание',v:'dinner'},
+   {l:'Театр, торжества, праздники',v:'event'},
+   {l:'Выходные и отдых',v:'weekend'},
+   {l:'Спорт и путешествия',v:'sport'}]},
+ {key:'tops',kind:'Одежда',multi:true,max:3,t:'Что вы чаще всего надеваете сверху?',o:function(a){return TOPS[a.gender||'any'];}},
+ {key:'bottoms',kind:'Одежда',multi:true,max:3,t:'А что надеваете снизу?',o:function(a){return BOTTOMS[a.gender||'any'];}},
+ {key:'pal',kind:'Цвета',t:'Какие цвета чаще всего в вашем гардеробе?',o:[
+   {l:'Нейтральные',s:'чёрный, серый, белый, бежевый',v:'neutral'},
+   {l:'Тёплые',s:'коричневый, горчичный, терракот, оливковый',v:'warm'},
+   {l:'Холодные',s:'синий, голубой, изумрудный, графит',v:'cool'},
+   {l:'Яркие',s:'красный, розовый, жёлтый, принты',v:'bright'},
+   {l:'Всё вперемешку',v:'any'}]},
+ {key:'metal',kind:'Металл',t:'Какие украшения и металл вам ближе?',o:[
+   {l:'Серебро',v:'steel'},{l:'Жёлтое золото',v:'gold'},{l:'Розовое золото',v:'rose'},{l:'Чёрный или графит',v:'black'},{l:'Не ношу украшения или не важно',v:'any'}]},
+ {key:'look',kind:'Характер',t:'Какими вы хотите видеть часы?',o:[
+   {l:'Сдержанными',s:'тонкие, элегантные, почти незаметные',v:'subtle'},
+   {l:'Акцентом образа',s:'заметный цвет, форма или корпус',v:'statement'},
+   {l:'Спортивными',s:'прочные, хорошо читаются на ходу',v:'sport'},
+   {l:'Умными',s:'уведомления, пульс, шаги',v:'smart'}]},
+ {key:'strap',kind:'Ремешок',t:'Какой ремешок подойдёт к вашим вещам?',o:[
+   {l:'Кожаный',s:'к костюму, рубашке, платью',v:'leather'},
+   {l:'Металлический браслет',s:'подходит к любому стилю',v:'metal'},
+   {l:'Мягкий: текстиль или силикон',s:'к повседневной и спортивной одежде',v:'soft'},
+   {l:'Любой',v:'any'}]},
+ {key:'tier',kind:'Бюджет',t:'Какой у вас бюджет?',o:[
+   {l:'Доступный',s:'недорогие часы на каждый день',v:1},
+   {l:'Средний',s:'хорошее качество за разумные деньги',v:2},
+   {l:'Выше среднего',s:'модель, которую хочется носить годами',v:3},
+   {l:'Премиум',s:'лучшие материалы и механизм',v:4}]}
+];
+
+/* ---------- Подбор ---------- */
+function near(f,t){ return Math.max(0,1-Math.abs(f-t)/2.5); }
+function avgF(list){ var s=0; list.forEach(function(k){s+=CLO[k];}); return s/list.length; }
+function goodItems(list,f){ return list.filter(function(k){return near(f,CLO[k])>=.6;}).map(function(k){return CLO_N[k];}); }
+function scoreWatch(w,a){
+  var m=META[w.id], s=0, max=0, why=[];
+  function add(wt,ratio,txt,th){ max+=wt; s+=wt*ratio; if(txt&&ratio>=(th||1)) why.push(txt); }
+  var st=STY[a.style], pos=st.tags.indexOf(w.style), tr=pos===0?1:pos===1?.65:pos===2?.4:0;
+  add(3,.7*tr+.3*near(m.f,st.f),'Подходит к вашему стилю: '+st.n,.65);
+  var hit=a.occ.filter(function(o){return m.occ.indexOf(o)>=0;});
+  add(2.5,hit.length/a.occ.length,hit.length?'Хорошо для: '+hit.map(function(o){return OCC_N[o];}).join(', '):'',.5);
+  var gt=goodItems(a.tops,m.f);
+  add(2,near(m.f,avgF(a.tops)),gt.length?'Сочетается с: '+gt.join(', '):'',.6);
+  var gb=goodItems(a.bottoms,m.f);
+  add(1.5,near(m.f,avgF(a.bottoms)),gb.length?'Сочетается с: '+gb.join(', '):'',.6);
+  if(a.pal!=='any') add(1.5,m.pal.indexOf(a.pal)>=0?1:0,'Цвета подходят к вашему гардеробу');
+  if(a.metal!=='any') add(1.5,w.metal===a.metal?1:0,'Цвет металла: '+MET[w.metal].n);
+  var lr=m.look===a.look?1:((m.look==='sport'&&a.look==='smart')||(m.look==='smart'&&a.look==='sport')?.5:0);
+  add(2,lr,LOOK_N[m.look]);
+  if(a.strap!=='any'){
+    var sm=a.strap==='metal'?(w.strap==='metal'||w.strap==='mesh'):a.strap==='soft'?(w.strap==='fabric'||w.strap==='silicone'):w.strap===a.strap;
+    add(1.5,sm?1:0,'Ремешок: '+STRAP_N[w.strap].toLowerCase());
+  }
+  var d=w.tier-a.tier, r=0;
+  if(d===0) r=1; else if(d===-1) r=.75; else if(d===-2) r=.5; else if(d<=-3) r=.3; else if(d===1) r=.35;
+  add(2,r,'Попадает в ваш бюджет');
+  return {w:w,s:s,pct:Math.round(s/max*100),why:why,td:Math.abs(d)};
+}
+function rank(a){
+  var list=W.filter(function(w){ return a.gender==='any'||w.g==='u'||w.g===a.gender; });
+  return list.map(function(w){return scoreWatch(w,a);}).sort(function(x,y){ return y.s-x.s||x.td-y.td; });
+}
+
+/* ---------- Рисунок часов (SVG) ---------- */
+var K=3.3, VW=240, VH=520, CX=120, CY=260, uidN=0;
+function hex2rgb(h){ h=h.replace('#',''); return [0,2,4].map(function(i){return parseInt(h.substr(i,2),16);}); }
+function lum(h){ var c=hex2rgb(h); return (0.299*c[0]+0.587*c[1]+0.114*c[2])/255; }
+function shade(h,p){
+  var c=hex2rgb(h).map(function(v){ return Math.round(p<0?v*(1+p):v+(255-v)*p); });
+  return '#'+c.map(function(v){return ('0'+v.toString(16)).slice(-2);}).join('');
+}
+function dims(w){
+  var R=w.mm*K/2;
+  if(w.shape==='round') return {hw:R,hh:R,rx:R};
+  if(w.shape==='square') return {hw:R*.92,hh:R*.92,rx:R*.2};
+  if(w.shape==='rsq') return {hw:R*.95,hh:R*.95,rx:R*.32};
+  if(w.shape==='rect') return {hw:R*.78,hh:R*1.02,rx:R*.08};
+  return {hw:R*.86,hh:R*1.02,rx:R*.34};
+}
+function shp(w,hw,hh,rx,inset,attrs){
+  if(w.shape==='round') return '<circle cx="'+CX+'" cy="'+CY+'" r="'+(hw-inset).toFixed(2)+'" '+attrs+'/>';
+  return '<rect x="'+(CX-hw+inset).toFixed(2)+'" y="'+(CY-hh+inset).toFixed(2)+'" width="'+(2*(hw-inset)).toFixed(2)+'" height="'+(2*(hh-inset)).toFixed(2)+'" rx="'+Math.max(rx-inset,2).toFixed(2)+'" '+attrs+'/>';
+}
+function edge(a,hw,hh,round){
+  if(round) return hw;
+  var dx=Math.abs(Math.sin(a)), dy=Math.abs(Math.cos(a));
+  var tx=dx>1e-6?hw/dx:1e9, ty=dy>1e-6?hh/dy:1e9;
+  return Math.min(tx,ty);
+}
+function hand(deg,L,wid,fill,stroke){
+  return '<g transform="rotate('+deg+' '+CX+' '+CY+')"><polygon points="'+CX+','+(CY-L)+' '+(CX+wid/2)+','+CY+' '+CX+','+(CY+L*.16)+' '+(CX-wid/2)+','+CY+'" fill="'+fill+'"'+(stroke?' stroke="'+stroke+'" stroke-width=".8"':'')+'/></g>';
+}
+function strapEls(w,u,sw,m){
+  var x0=CX-sw/2, o='', y, i;
+  var sc=w.sc||m.mid;
+  if(w.strap==='leather'||w.strap==='silicone'||w.strap==='fabric'){
+    o+='<rect x="'+x0+'" y="0" width="'+sw+'" height="'+VH+'" fill="url(#'+u+'sg)"/>';
+    if(w.strap==='leather'){
+      o+='<rect x="'+(x0+4)+'" y="0" width="'+(sw-8)+'" height="'+VH+'" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="1" stroke-dasharray="4 3"/>';
+    } else if(w.strap==='silicone'){
+      for(y=22;y<VH;y+=15){ if(Math.abs(y-CY)>90) o+='<circle cx="'+CX+'" cy="'+y+'" r="2.3" fill="'+shade(sc,-.5)+'"/>'; }
+    } else {
+      o+='<rect x="'+x0+'" y="0" width="'+sw+'" height="'+VH+'" fill="url(#'+u+'pf)"/>';
+      o+='<rect x="'+(CX-sw*.12)+'" y="0" width="'+(sw*.24)+'" height="'+VH+'" fill="rgba(255,255,255,.14)"/>';
+    }
+  } else if(w.strap==='metal'){
+    o+='<rect x="'+x0+'" y="0" width="'+sw+'" height="'+VH+'" fill="'+m.lo+'"/>';
+    for(y=0;y<VH;y+=20){
+      o+='<rect x="'+(CX-sw*.22)+'" y="'+y+'" width="'+(sw*.44)+'" height="18" rx="2" fill="url(#'+u+'mh)"/>';
+      o+='<rect x="'+x0+'" y="'+(y+10)+'" width="'+(sw*.27)+'" height="18" rx="2" fill="url(#'+u+'mh)"/>';
+      o+='<rect x="'+(x0+sw*.73)+'" y="'+(y+10)+'" width="'+(sw*.27)+'" height="18" rx="2" fill="url(#'+u+'mh)"/>';
+    }
+  } else {
+    o+='<rect x="'+x0+'" y="0" width="'+sw+'" height="'+VH+'" fill="url(#'+u+'mh)"/>';
+    o+='<rect x="'+x0+'" y="0" width="'+sw+'" height="'+VH+'" fill="url(#'+u+'pm)"/>';
+  }
+  return '<g mask="url(#'+u+'mk)">'+o+'</g>';
+}
+function watchSVG(w,opt){
+  opt=opt||{};
+  var u=opt.uid||('w'+(++uidN))+'_', m=MET[w.metal], dl=DIAL[w.dial], dark=lum(dl)<.5;
+  var mc=dark?'#eef2f0':'#1a1c1e', D=dims(w), round=w.shape==='round', smart=!!w.digital;
+  var sc=w.sc||m.mid;
+  var sw=Math.max(round?D.hw*1.02:D.hw*1.3,34);
+  var inset=smart?4:5, dhw=D.hw-inset-2, dhh=D.hh-inset-2, i, a, t, len, wd, o='';
+  var defs='<defs>'+
+   '<linearGradient id="'+u+'mg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+m.hi+'"/><stop offset=".5" stop-color="'+m.mid+'"/><stop offset="1" stop-color="'+m.lo+'"/></linearGradient>'+
+   '<linearGradient id="'+u+'mh" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="'+m.lo+'"/><stop offset=".35" stop-color="'+m.hi+'"/><stop offset=".7" stop-color="'+m.mid+'"/><stop offset="1" stop-color="'+m.lo+'"/></linearGradient>'+
+   '<linearGradient id="'+u+'sg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="'+shade(sc,-.32)+'"/><stop offset=".5" stop-color="'+shade(sc,.05)+'"/><stop offset="1" stop-color="'+shade(sc,-.32)+'"/></linearGradient>'+
+   '<linearGradient id="'+u+'fv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000"/><stop offset=".12" stop-color="#fff"/><stop offset=".88" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>'+
+   '<mask id="'+u+'mk" maskUnits="userSpaceOnUse" x="0" y="0" width="'+VW+'" height="'+VH+'"><rect x="0" y="0" width="'+VW+'" height="'+VH+'" fill="url(#'+u+'fv)"/></mask>'+
+   '<radialGradient id="'+u+'gl" cx=".3" cy=".18" r=".9"><stop offset="0" stop-color="#fff" stop-opacity=".32"/><stop offset=".55" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'+
+   '<pattern id="'+u+'pf" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="2" fill="rgba(255,255,255,.12)"/></pattern>'+
+   '<pattern id="'+u+'pm" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="1.2" height="3" fill="rgba(0,0,0,.2)"/></pattern>'+
+   '</defs>';
+  o+=strapEls(w,u,sw,m);
+  /* ушки */
+  o+='<rect x="'+(CX-sw/2-4)+'" y="'+(CY-D.hh-8)+'" width="'+(sw+8)+'" height="'+(2*D.hh+16)+'" rx="5" fill="'+m.mid+'" stroke="'+m.lo+'" stroke-width="1"/>';
+  /* корпус */
+  o+=shp(w,D.hw,D.hh,D.rx,0,'fill="url(#'+u+'mg)" stroke="'+m.lo+'" stroke-width="1"');
+  o+=shp(w,D.hw,D.hh,D.rx,2.5,'fill="none" stroke="'+m.hi+'" stroke-opacity=".7" stroke-width="1"');
+  o+='<rect x="'+(CX+D.hw-2)+'" y="'+(CY-5)+'" width="8" height="10" rx="2" fill="url(#'+u+'mh)" stroke="'+m.lo+'" stroke-width=".8"/>';
+  if(smart) o+='<rect x="'+(CX+D.hw-2)+'" y="'+(CY+16)+'" width="5" height="16" rx="2" fill="'+m.mid+'" stroke="'+m.lo+'" stroke-width=".8"/>';
+  /* циферблат */
+  o+=shp(w,D.hw,D.hh,D.rx,inset,'fill="'+dl+'" stroke="rgba(0,0,0,.35)" stroke-width="1"');
+  if(smart){
+    var fs=D.hw*.62;
+    o+='<text x="'+CX+'" y="'+(CY+fs*.1)+'" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-weight="700" font-size="'+fs.toFixed(1)+'" fill="#fff" letter-spacing="-1">10:10</text>';
+    o+='<text x="'+CX+'" y="'+(CY-fs*.78)+'" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="'+(fs*.26).toFixed(1)+'" fill="#9fb0b7" letter-spacing="1">ВТ 13</text>';
+    var bw=dhw*1.2, by=CY+fs*.5;
+    var cols=['#ff4d5e','#7be35c','#38c7ff'], fr=[.8,.55,.35];
+    for(i=0;i<3;i++){
+      o+='<rect x="'+(CX-bw/2)+'" y="'+(by+i*7)+'" width="'+bw+'" height="3.6" rx="1.8" fill="#2a3338"/>';
+      o+='<rect x="'+(CX-bw/2)+'" y="'+(by+i*7)+'" width="'+(bw*fr[i]).toFixed(1)+'" height="3.6" rx="1.8" fill="'+cols[i]+'"/>';
+    }
+  } else {
+    if(w.style==='sport'||w.style==='casual'){
+      if(round) o+='<circle cx="'+CX+'" cy="'+CY+'" r="'+(dhw-1)+'" fill="none" stroke="'+mc+'" stroke-opacity=".55" stroke-width="1.6" stroke-dasharray=".7 2.37"/>';
+    }
+    for(i=0;i<12;i++){
+      a=i*Math.PI/6; t=edge(a,dhw,dhh,round)-(w.style==='sport'||w.style==='casual'?5:3.5);
+      var major=i%3===0, dx=Math.sin(a), dy=-Math.cos(a), x1=CX+dx*t, y1=CY+dy*t;
+      if(w.style==='dress'){ len=major?9:6; wd=major?1.7:1; }
+      else if(w.style==='sport'){ len=major?11:8; wd=major?4:3; }
+      else if(w.style==='casual'){ len=major?10:7; wd=major?2.8:2; }
+      else if(w.style==='minimal'){ if(!major){ o+='<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="1.1" fill="'+mc+'"/>'; continue; } len=8; wd=1.5; }
+      else { if(!major){ o+='<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="1.8" fill="'+mc+'"/>'; continue; } len=9; wd=2.4; }
+      o+='<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+(CX+dx*(t-len)).toFixed(1)+'" y2="'+(CY+dy*(t-len)).toFixed(1)+'" stroke="'+mc+'" stroke-width="'+wd+'"/>';
+    }
+    if(w.move==='auto'&&w.shape!=='rect'){
+      o+='<text x="'+CX+'" y="'+(CY+dhh*.46)+'" text-anchor="middle" font-family="Helvetica,Arial,sans-serif" font-size="'+(dhw*.12).toFixed(1)+'" fill="'+mc+'" fill-opacity=".7" letter-spacing="1.2">AUTOMATIC</text>';
+    }
+    var base=Math.min(dhw,dhh)+(round?0:3);
+    var hc=mc, lume=w.style==='sport'?(dark?'#e8f2d0':'#ffffff'):hc, st=w.style==='sport'?mc:null;
+    o+=hand(305,base*.52,w.style==='sport'?5:3.6,lume,st);
+    o+=hand(60,base*.82,w.style==='sport'?4:2.8,lume,st);
+    o+='<g transform="rotate(130 '+CX+' '+CY+')"><line x1="'+CX+'" y1="'+(CY+base*.2)+'" x2="'+CX+'" y2="'+(CY-base*.86)+'" stroke="'+(w.style==='sport'||w.style==='casual'?'#e0502d':mc)+'" stroke-width="1"/></g>';
+    o+='<circle cx="'+CX+'" cy="'+CY+'" r="2.8" fill="'+(w.style==='sport'?'#e0502d':hc)+'"/>';
+  }
+  o+=shp(w,D.hw,D.hh,D.rx,inset,'fill="url(#'+u+'gl)"');
+  var vb=opt.full?'0 0 '+VW+' '+VH:'0 70 '+VW+' 380';
+  var size=opt.canvas?' width="'+(VW*4)+'" height="'+(VH*4)+'"':'';
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+vb+'"'+size+' role="img" aria-label="Часы '+w.name+'">'+defs+o+'</svg>';
+}
+
+/* ---------- Состояние и экраны ---------- */
+var $=function(s){return document.querySelector(s);};
+var S={step:0,ans:{},labels:{},res:[],custom:[],pick:null,photo:null,tx:{x:450,y:690,s:1.5,r:0}};
+var V={intro:$('#v-intro'),quiz:$('#v-quiz'),result:$('#v-result'),tryon:$('#v-try'),cut:$('#v-cut')};
+function show(name){
+  if(name!=='tryon'&&typeof stopLive==='function') stopLive();
+  Object.keys(V).forEach(function(k){V[k].hidden=(k!==name);});
+  $('#btnRestart').hidden=(name==='intro');
+  window.scrollTo(0,0);
+}
+function toast(msg){
+  var t=$('#toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(toast._t); toast._t=setTimeout(function(){t.classList.remove('on');},2800);
+}
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
+/* Intro */
+(function(){
+  var ids=[['bambino','К костюму'],['dw','К платью'],['s11','К худи']], h='';
+  ids.forEach(function(p){ var w=BY[p[0]]; h+='<figure>'+watchSVG(w)+'<figcaption class="mono"><span>'+esc(p[1])+'</span></figcaption></figure>'; });
+  $('#trio').innerHTML=h;
+})();
+
+/* Quiz */
+function renderTicks(){
+  var h=''; for(var i=0;i<Q.length;i++) h+='<i class="'+(i<S.step?'done':(i===S.step?'now':''))+'"></i>';
+  $('#ticks').innerHTML=h;
+}
+function qopts(q){ return typeof q.o==='function'?q.o(S.ans):q.o; }
+function renderQuiz(){
+  var q=Q[S.step], os=qopts(q), sel=S.ans[q.key], h='';
+  renderTicks();
+  $('#qcount').textContent='Вопрос '+(S.step+1)+' из '+Q.length;
+  $('#qkind').textContent=q.kind.toUpperCase();
+  h+='<h2 class="q-title fade">'+esc(q.t)+'</h2>';
+  if(q.multi) h+='<p class="hint multi-hint">Выберите до '+q.max+' вариантов</p>';
+  h+='<div class="opts fade" role="group" aria-label="'+esc(q.t)+'">';
+  os.forEach(function(o,i){
+    var on=q.multi?(sel||[]).indexOf(o.v)>=0:sel===o.v;
+    h+='<button type="button" class="opt'+(on?' sel':'')+'" data-i="'+i+'" aria-pressed="'+on+'"><span class="l">'+esc(o.l)+'</span>'+(o.s?'<span class="s">'+esc(o.s)+'</span>':'')+'</button>';
+  });
+  h+='</div>';
+  if(q.multi) h+='<div class="next-row"><button type="button" class="btn btn-primary" id="btnNext"'+((sel&&sel.length)?'':' disabled')+'>Дальше</button></div>';
+  $('#qbody').innerHTML=h;
+  $('#btnBack').hidden=(S.step===0);
+}
+function advance(){ if(S.step<Q.length-1){ S.step++; renderQuiz(); } else finish(); }
+$('#qbody').addEventListener('click',function(e){
+  var q=Q[S.step];
+  if(e.target.closest('#btnNext')){ if((S.ans[q.key]||[]).length) advance(); return; }
+  var b=e.target.closest('.opt'); if(!b) return;
+  var o=qopts(q)[+b.dataset.i];
+  if(q.multi){
+    var cur=(S.ans[q.key]||[]).slice(), j=cur.indexOf(o.v);
+    if(j>=0) cur.splice(j,1);
+    else { if(cur.length>=q.max){ toast('Можно выбрать не больше '+q.max+'.'); return; } cur.push(o.v); }
+    S.ans[q.key]=cur; renderQuiz(); return;
+  }
+  S.ans[q.key]=o.v; S.labels[q.key]=o.l;
+  Array.prototype.forEach.call($('#qbody').querySelectorAll('.opt'),function(x){x.classList.toggle('sel',x===b);x.setAttribute('aria-pressed',x===b);});
+  setTimeout(advance,220);
+});
+$('#btnBack').addEventListener('click',function(){ if(S.step>0){ S.step--; renderQuiz(); } });
+function start(){ S.step=0; S.ans={}; S.labels={}; S.res=[]; show('quiz'); renderQuiz(); }
+$('#btnStart').addEventListener('click',start);
+$('#btnRestart').addEventListener('click',function(){ show('intro'); });
+
+/* Результат */
+function specsHTML(w){
+  var m=META[w.id];
+  var h='<dl class="specs"><dt>С чем носить</dt><dd>'+esc(m.wear)+'</dd>'+
+   '<dt>Поводы</dt><dd>'+m.occ.map(function(o){return OCC_N[o];}).join(', ')+'</dd>'+
+   '<dt>Механизм</dt><dd>'+MOVE_N[w.move]+'</dd></dl>';
+  h+='<details class="tech"><summary>Параметры модели</summary><dl class="specs">'+w.spec.map(function(x){return '<dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd>';}).join('')+'</dl>'+
+   '<a class="src" href="'+w.url+'" target="_blank" rel="noopener">Источник: '+esc(w.src)+'</a></details>';
+  return h;
+}
+function userF(a){ return (STY[a.style].f*2+avgF(a.tops)*1.5+avgF(a.bottoms))/4.5; }
+function cov(w,o){ var m=META[w.id]; if(m.occ.indexOf(o)>=0) return 1; return near(m.f,OCCF[o])>=.6?.5:0; }
+function capsule(a,res){
+  var caps=[res[0].w], need=a.occ.filter(function(o){return cov(caps[0],o)<1;});
+  while(need.length&&caps.length<3){
+    var best=null,bg=0;
+    res.forEach(function(r){
+      if(caps.indexOf(r.w)>=0) return;
+      var g=need.filter(function(o){return cov(r.w,o)>=1;}).length;
+      if(g>bg||(g===bg&&g>0&&r.s>best.s)){ bg=g; best=r; }
+    });
+    if(!best||!bg) break;
+    caps.push(best.w); need=need.filter(function(o){return cov(best.w,o)<1;});
+  }
+  return {list:caps,left:need};
+}
+function scaleHTML(a,w){
+  var uf=userF(a), f=META[w.id].f;
+  function p(x){ return (x-1)/4*100; }
+  var lo=p(Math.max(1,uf-.6)), hi=p(Math.min(5,uf+.6));
+  return '<div class="scale"><div class="track"><span class="band" style="left:'+lo.toFixed(1)+'%;width:'+(hi-lo).toFixed(1)+'%"></span><span class="dot" style="left:'+p(f).toFixed(1)+'%"></span></div>'+
+   '<div class="ends mono"><span>Спорт</span><span>Повседневно</span><span>Вечер</span></div>'+
+   '<p class="hint">Полоса показывает формальность вашего гардероба, точка показывает формальность часов.</p></div>';
+}
+function calHTML(a,w){
+  var t={1:['ok','подходят'],.5:['mid','допустимо'],0:['no','лучше другие']};
+  return '<ul class="cal">'+a.occ.map(function(o){ var c=cov(w,o), x=t[c]; return '<li class="'+x[0]+'"><span>'+OCC_N[o]+'</span><span class="mono">'+x[1]+'</span></li>'; }).join('')+'</ul>';
+}
+function finish(){
+  S.res=rank(S.ans); S.pick=S.res[0].w.id;
+  var top=S.res[0], rest=S.res.slice(1,3), h='', a=S.ans, cap=capsule(a,S.res);
+  var sum=[STY[a.style].n,a.occ.map(function(o){return OCC_N[o];}).join(', '),a.tops.map(function(k){return CLO_N[k];}).join(', ')].join(' · ');
+  h+='<div class="res-head fade"><p class="mono">ВАШ ОБРАЗ</p><h2>'+ARCH[a.style]+'</h2><p class="mono">'+esc(sum)+'</p></div>';
+  h+='<article class="top fade"><div class="pic">'+watchSVG(top.w)+'</div><div class="info">'+
+     '<div class="rank"><span class="pct">'+top.pct+'%</span><span class="mono">совпадение с образом</span></div>'+
+     '<h3 class="name">'+esc(top.w.name)+'</h3><p class="blurb">'+esc(top.w.blurb)+'</p>'+
+     '<div class="chips">'+top.why.slice(0,5).map(function(x){return '<span class="chip">'+esc(x)+'</span>';}).join('')+'</div>'+
+     specsHTML(top.w)+
+     '<div><button class="btn btn-primary" type="button" data-try="'+top.w.id+'">Примерить на руке</button></div></div></article>';
+  h+='<div class="duo"><section><h3 class="sub">Шкала формальности</h3>'+scaleHTML(a,top.w)+'</section>'+
+     '<section><h3 class="sub">Календарь ваших поводов</h3>'+calHTML(a,top.w)+'</section></div>';
+  if(a.occ.length>1){
+    h+='<h3 class="sub">Капсула часов</h3>';
+    if(!cap.left.length&&cap.list.length===1){
+      h+='<p class="blurb">Модель «'+esc(top.w.name)+'» подходит ко всем выбранным поводам. Вторые часы не нужны.</p>';
+    } else {
+      h+='<p class="blurb">'+(cap.left.length?'Одни часы не закроют все повода. ':'')+'Эти '+cap.list.length+' модели вместе подходят ко всем: '+a.occ.filter(function(o){return cap.left.indexOf(o)<0;}).map(function(o){return OCC_N[o];}).join(', ')+'.'+(cap.left.length?' Для «'+cap.left.map(function(o){return OCC_N[o];}).join(', ')+'» лучше добавить отдельные часы.':'')+'</p><div class="minis">';
+      var seen=[];
+      cap.list.forEach(function(w){
+        var mine=a.occ.filter(function(o){return cov(w,o)>=1&&seen.indexOf(o)<0;}); seen=seen.concat(mine);
+        h+='<article class="mini"><div class="pic">'+watchSVG(w)+'</div><div class="body"><span class="mono">'+(mine.length?esc(mine.map(function(o){return OCC_N[o];}).join(', ')):'ДОПОЛНЕНИЕ')+'</span><h3 class="name">'+esc(w.name)+'</h3><p class="blurb">'+esc(META[w.id].wear)+'</p><button class="btn" type="button" data-try="'+w.id+'">Примерить</button></div></article>';
+      });
+      h+='</div>';
+    }
+  }
+  h+='<h3 class="sub">Ещё подходят</h3><div class="minis">';
+  rest.forEach(function(r){
+    h+='<article class="mini"><div class="pic">'+watchSVG(r.w)+'</div><div class="body"><span class="mono">'+r.pct+'% совпадение</span><h3 class="name">'+esc(r.w.name)+'</h3><p class="blurb">'+esc(META[r.w.id].wear)+'</p><button class="btn" type="button" data-try="'+r.w.id+'">Примерить</button></div></article>';
+  });
+  h+='</div><p class="note">Параметры собраны с сайтов производителей и магазинов, ссылка на источник есть в каждой карточке. Часы нарисованы по этим параметрам и не являются фотографиями; цвет ремешка может отличаться от настоящей модели. Цены ориентировочные.</p><div class="again"><button class="link" type="button" id="btnAgain">Пройти квиз заново</button></div>';
+  V.result.innerHTML=h; show('result');
+}
+V.result.addEventListener('click',function(e){
+  var b=e.target.closest('[data-try]');
+  if(b){ openTry(b.dataset.try); return; }
+  if(e.target.id==='btnAgain') start();
+});
+
+/* Примерка */
+var cv=$('#cv'), ctx=cv.getContext?cv.getContext('2d'):null, CW=900, CH=1200, PX=2;
+var imgs={}, dlCap=null;
+function resetTx(){ S.tx={x:CW/2,y:S.photo?CH*.55:690,s:1.5,r:0}; syncCtl(); }
+function wImg(w){
+  if(w.cut) return imgs[w.id]||(imgs[w.id]={img:w.cut,ok:true});
+  var e=imgs[w.id];
+  if(e) return e;
+  e={img:new Image(),ok:false};
+  e.img.onload=function(){ e.ok=true; draw(); };
+  e.img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(watchSVG(w,{canvas:true,full:true,uid:'c'+w.id+'_'}));
+  imgs[w.id]=e; return e;
+}
+function drawDemo(c){
+  var g=c.createLinearGradient(0,0,0,CH); g.addColorStop(0,'#dde2e4'); g.addColorStop(1,'#c3cacd');
+  c.fillStyle=g; c.fillRect(0,0,CW,CH);
+  var sk=c.createLinearGradient(240,0,660,0); sk.addColorStop(0,'#c58f68'); sk.addColorStop(.5,'#e0b08a'); sk.addColorStop(1,'#c58f68');
+  c.fillStyle=sk;
+  c.beginPath(); c.moveTo(225,CH); c.lineTo(318,640); c.quadraticCurveTo(330,560,300,470); c.lineTo(600,470); c.quadraticCurveTo(570,560,582,640); c.lineTo(675,CH); c.closePath(); c.fill();
+  c.beginPath(); c.ellipse(450,300,215,300,0,0,Math.PI*2); c.fill();
+  c.strokeStyle='rgba(120,70,40,.25)'; c.lineWidth=3;
+  c.beginPath(); c.moveTo(318,640); c.quadraticCurveTo(330,560,300,470); c.moveTo(582,640); c.quadraticCurveTo(570,560,600,470); c.stroke();
+  drawSleeve(c);
+}
+function drawSleeve(c){
+  var k=((S.ans.tops||[])[0]), sl=SLEEVE[k]; if(!sl) return;
+  var y0=930;
+  c.fillStyle=sl[0];
+  c.beginPath(); c.moveTo(262,y0); c.lineTo(638,y0); c.lineTo(700,CH); c.lineTo(200,CH); c.closePath(); c.fill();
+  c.fillStyle='rgba(0,0,0,.14)'; c.fillRect(262,y0,376,6);
+  if(sl[1]){ c.fillStyle=sl[1]; c.beginPath(); c.moveTo(262,y0-26); c.lineTo(638,y0-26); c.lineTo(640,y0+4); c.lineTo(260,y0+4); c.closePath(); c.fill(); }
+}
+var vid=$('#vid'), LIVE={on:false,stream:null,face:'environment',raf:0};
+function drawCover(c,im,mirror){
+  var iw=im.videoWidth||im.width, ih=im.videoHeight||im.height; if(!iw||!ih) return;
+  var s=Math.max(CW/iw,CH/ih), w=iw*s, h=ih*s;
+  if(mirror){ c.save(); c.translate(CW,0); c.scale(-1,1); }
+  c.drawImage(im,(CW-w)/2,(CH-h)/2,w,h);
+  if(mirror) c.restore();
+}
+function stopLive(){
+  LIVE.on=false; cancelAnimationFrame(LIVE.raf);
+  if(LIVE.stream){ LIVE.stream.getTracks().forEach(function(t){ t.stop(); }); LIVE.stream=null; }
+  try{ vid.srcObject=null; }catch(e){}
+  $('#btnShot').hidden=true; $('#btnFlip').hidden=true; $('#btnLive').textContent='Живая камера';
+}
+function loopLive(){ if(!LIVE.on) return; draw(); LIVE.raf=requestAnimationFrame(loopLive); }
+function startLive(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ toast('Камера недоступна в этом браузере. Используйте «Сфотографировать».'); return; }
+  stopLive();
+  navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:LIVE.face},width:{ideal:1920},height:{ideal:1440}},audio:false}).then(function(st){
+    LIVE.stream=st; vid.srcObject=st; return vid.play();
+  }).then(function(){
+    LIVE.on=true; S.photo=null; $('#demoBadge').hidden=true;
+    $('#btnShot').hidden=false; $('#btnFlip').hidden=false; $('#btnLive').textContent='Выключить камеру';
+    loopLive();
+  }).catch(function(){ stopLive(); toast('Нет доступа к камере. Разрешите её в настройках браузера или используйте «Сфотографировать».'); });
+}
+$('#btnLive').addEventListener('click',function(){ if(LIVE.on) stopLive(); else startLive(); if(!LIVE.on) draw(); });
+$('#btnFlip').addEventListener('click',function(){ LIVE.face=LIVE.face==='environment'?'user':'environment'; startLive(); });
+$('#btnShot').addEventListener('click',function(){
+  if(!LIVE.on) return;
+  var c=document.createElement('canvas'); c.width=CW*PX; c.height=CH*PX;
+  var x=c.getContext('2d'); x.setTransform(PX,0,0,PX,0,0); drawCover(x,vid,LIVE.face==='user');
+  var im=new Image(); im.onload=function(){ S.photo=im; stopLive(); draw(); toast('Кадр снят. Перетащите часы на запястье.'); };
+  im.src=c.toDataURL('image/jpeg',.95);
+});
+function draw(){
+  if(!ctx) return;
+  ctx.setTransform(PX,0,0,PX,0,0); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+  ctx.clearRect(0,0,CW,CH);
+  if(LIVE.on) drawCover(ctx,vid,LIVE.face==='user'); else if(S.photo) drawCover(ctx,S.photo); else drawDemo(ctx);
+  var w=BY[S.pick]; if(!w) return;
+  var e=wImg(w); if(!e.ok) return;
+  ctx.save();
+  ctx.translate(S.tx.x,S.tx.y); ctx.rotate(S.tx.r*Math.PI/180); ctx.scale(S.tx.s,S.tx.s);
+  ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=14; ctx.shadowOffsetY=5;
+  if(w.cut){ var cw=200, ch=200*w.cut.height/w.cut.width; ctx.drawImage(e.img,-cw/2,-ch/2,cw,ch); }
+  else ctx.drawImage(e.img,-CX,-CY,VW,VH);
+  ctx.restore();
+}
+function syncCtl(){
+  $('#rngScale').value=Math.round(S.tx.s*100); $('#outScale').textContent=S.tx.s.toFixed(1)+'×';
+  $('#rngRot').value=Math.round(S.tx.r); $('#outRot').textContent=Math.round(S.tx.r)+'°';
+}
+function renderPicker(){
+  var h='';
+  S.res.forEach(function(r){
+    h+='<button type="button" class="pick" role="option" data-id="'+r.w.id+'" aria-selected="'+(r.w.id===S.pick)+'">'+watchSVG(r.w)+'<span>'+esc(r.w.name)+'</span></button>';
+  });
+  S.custom.forEach(function(w){
+    h+='<button type="button" class="pick" role="option" data-id="'+w.id+'" aria-selected="'+(w.id===S.pick)+'"><img alt="" src="'+w.cut.toDataURL('image/png')+'"><span>'+esc(w.name)+'</span></button>';
+  });
+  if(!h) h='<p class="picker-empty">Здесь появятся ваши часы. Нажмите «Добавить свои часы из фото».</p>';
+  $('#picker').innerHTML=h;
+}
+function setPick(id){
+  S.pick=id; var w=BY[id];
+  $('#tryName').textContent=w.name;
+  $('#tryMeta').textContent=META[w.id].wear; $('#fitNote').textContent=fitText();
+  Array.prototype.forEach.call($('#picker').children,function(b){ b.setAttribute('aria-selected',b.dataset.id===id); });
+  draw();
+}
+function fitText(){
+  var v=parseFloat($('#inWrist').value.replace(',','.')), w=BY[S.pick];
+  if(!w||!w.mm||!v||v<10||v>26) return '';
+  var ideal=v*2.4, d=w.mm-ideal;
+  if(Math.abs(d)<=2.5) return 'Корпус '+w.mm+' мм хорошо сидит на запястье '+v+' см.';
+  return d>0?'Корпус '+w.mm+' мм на запястье '+v+' см будет выглядеть крупновато.':'Корпус '+w.mm+' мм на запястье '+v+' см будет выглядеть маленьким.';
+}
+$('#inWrist').addEventListener('input',function(){ $('#fitNote').textContent=fitText(); });
+function tryMode(own){
+  S.own=own;
+  $('#btnToResult').textContent=own?'← На главную':'← К подборке';
+  $('#btnCut').className=own?'btn btn-primary':'btn';
+  $('#btnLive').className=own?'btn':'btn btn-primary';
+}
+function openTry(id){
+  tryMode(false); show('tryon'); renderPicker(); resetTx();
+  $('#demoBadge').hidden=!!S.photo;
+  setPick(id);
+}
+function openOwn(){
+  tryMode(true); S.res=[]; S.pick=S.custom.length?S.custom[S.custom.length-1].id:null;
+  show('tryon'); renderPicker(); resetTx();
+  $('#demoBadge').hidden=!!S.photo;
+  if(S.pick) setPick(S.pick);
+  else { $('#tryName').textContent='Свои часы'; $('#tryMeta').textContent='Сфотографируйте часы и добавьте их из фото.'; $('#fitNote').textContent=''; draw(); }
+}
+$('#btnOwn').addEventListener('click',openOwn);
+$('#picker').addEventListener('click',function(e){ var b=e.target.closest('.pick'); if(b) setPick(b.dataset.id); });
+$('#btnToResult').addEventListener('click',function(){ show(S.own||!S.res.length?'intro':'result'); });
+
+function loadPhoto(file){
+  stopLive();
+  if(!file) return;
+  var url=URL.createObjectURL(file), im=new Image();
+  im.onload=function(){
+    S.photo=im; $('#demoBadge').hidden=true; resetTx(); draw();
+    toast('Фото загружено. Перетащите часы на запястье.');
+  };
+  im.onerror=function(){ toast('Не удалось открыть фото. Попробуйте другое.'); };
+  im.src=url;
+}
+$('#btnCam').addEventListener('click',function(){ $('#fileCam').click(); });
+$('#btnGal').addEventListener('click',function(){ $('#fileGal').click(); });
+$('#fileCam').addEventListener('change',function(e){ loadPhoto(e.target.files[0]); e.target.value=''; });
+$('#fileGal').addEventListener('change',function(e){ loadPhoto(e.target.files[0]); e.target.value=''; });
+$('#btnReset').addEventListener('click',function(){ resetTx(); draw(); });
+$('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; syncCtl(); draw(); });
+$('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; syncCtl(); draw(); });
+
+/* ---------- Вырезание часов из фото ---------- */
+function cutPixels(d,w,h,tol,round){
+  var n=w*h,x,y,i,p;
+  var rs=[],gs=[],bs=[];
+  function samp(q){ rs.push(d[q*4]); gs.push(d[q*4+1]); bs.push(d[q*4+2]); }
+  for(x=0;x<w;x++){ samp(x); samp((h-1)*w+x); }
+  for(y=0;y<h;y++){ samp(y*w); samp(y*w+w-1); }
+  function med(a){ a.sort(function(u,v){return u-v;}); return a[a.length>>1]; }
+  var bg=[med(rs),med(gs),med(bs)];
+  var vis=new Uint8Array(n), st=new Int32Array(n), sp=0;
+  function near(q){ var dr=d[q*4]-bg[0],dg=d[q*4+1]-bg[1],db=d[q*4+2]-bg[2]; return Math.sqrt(dr*dr+dg*dg+db*db)<=tol; }
+  function push(q){ if(!vis[q]&&near(q)){ vis[q]=1; st[sp++]=q; } }
+  for(x=0;x<w;x++){ push(x); push((h-1)*w+x); }
+  for(y=0;y<h;y++){ push(y*w); push(y*w+w-1); }
+  while(sp){
+    p=st[--sp]; var px=p%w, py=(p-px)/w;
+    if(px>0) push(p-1); if(px<w-1) push(p+1); if(py>0) push(p-w); if(py<h-1) push(p+w);
+  }
+  var a=new Uint8Array(n);
+  for(i=0;i<n;i++) a[i]=vis[i]?0:255;
+  if(round){
+    var cx=(w-1)/2, cy=(h-1)/2, rx=w/2, ry=h/2;
+    for(y=0;y<h;y++) for(x=0;x<w;x++){ var ex=(x-cx)/rx, ey=(y-cy)/ry; if(ex*ex+ey*ey>1) a[y*w+x]=0; }
+  }
+  /* оставляем только самую большую связную область */
+  var lab=new Int32Array(n), best=0, bestSize=0, id=0;
+  for(i=0;i<n;i++){
+    if(!a[i]||lab[i]) continue;
+    id++; var size=0; sp=0; st[sp++]=i; lab[i]=id;
+    while(sp){
+      p=st[--sp]; size++; var qx=p%w, m;
+      if(qx>0){ m=p-1; if(a[m]&&!lab[m]){ lab[m]=id; st[sp++]=m; } }
+      if(qx<w-1){ m=p+1; if(a[m]&&!lab[m]){ lab[m]=id; st[sp++]=m; } }
+      if(p>=w){ m=p-w; if(a[m]&&!lab[m]){ lab[m]=id; st[sp++]=m; } }
+      if(p<n-w){ m=p+w; if(a[m]&&!lab[m]){ lab[m]=id; st[sp++]=m; } }
+    }
+    if(size>bestSize){ bestSize=size; best=id; }
+  }
+  for(i=0;i<n;i++) if(lab[i]!==best) a[i]=0;
+  /* смягчаем край: среднее значение прозрачности 3×3 */
+  var out=new Uint8Array(n), x0=w, y0=h, x1=-1, y1=-1;
+  for(y=0;y<h;y++) for(x=0;x<w;x++){
+    var s=0,c=0;
+    for(var dy=-1;dy<=1;dy++) for(var dx=-1;dx<=1;dx++){
+      var xx=x+dx, yy=y+dy; if(xx<0||yy<0||xx>=w||yy>=h) continue;
+      s+=a[yy*w+xx]; c++;
+    }
+    var v=a[y*w+x]?Math.max(Math.round(s/c),128):Math.round(s/c)>>1;
+    out[y*w+x]=v;
+    if(v>8){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+  }
+  for(i=0;i<n;i++) d[i*4+3]=out[i];
+  return x1<0?null:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
+}
+var CUT={img:null,rect:null,sc:1,tol:45,round:false,out:null,drag:null,n:0};
+function cutCanvasSize(){
+  var im=CUT.img; CUT.sc=Math.min(1,1000/Math.max(im.width,im.height));
+  var c=$('#cc'); c.width=Math.round(im.width*CUT.sc); c.height=Math.round(im.height*CUT.sc);
+}
+function drawCut(){
+  var c=$('#cc'), x=c.getContext('2d'), im=CUT.img, r=CUT.rect, k=CUT.sc;
+  x.imageSmoothingQuality='high'; x.clearRect(0,0,c.width,c.height); x.drawImage(im,0,0,c.width,c.height);
+  x.fillStyle='rgba(0,0,0,.5)';
+  var rx=r.x*k, ry=r.y*k, rw=r.w*k, rh=r.h*k;
+  x.fillRect(0,0,c.width,ry); x.fillRect(0,ry+rh,c.width,c.height-ry-rh);
+  x.fillRect(0,ry,rx,rh); x.fillRect(rx+rw,ry,c.width-rx-rw,rh);
+  x.strokeStyle='#ffffff'; x.lineWidth=2; x.setLineDash([6,4]); x.strokeRect(rx,ry,rw,rh); x.setLineDash([]);
+}
+function runCut(){
+  var r=CUT.rect, k=Math.min(1,1600/Math.max(r.w,r.h));
+  var w=Math.max(8,Math.round(r.w*k)), h=Math.max(8,Math.round(r.h*k));
+  var c=document.createElement('canvas'); c.width=w; c.height=h;
+  var x=c.getContext('2d'); x.drawImage(CUT.img,r.x,r.y,r.w,r.h,0,0,w,h);
+  var id=x.getImageData(0,0,w,h), box=cutPixels(id.data,w,h,CUT.tol,CUT.round);
+  var pv=$('#cp'), px=pv.getContext('2d'); px.imageSmoothingQuality='high';
+  if(!box){ CUT.out=null; px.clearRect(0,0,pv.width,pv.height); $('#cutNote').textContent='Часы не найдены. Увеличьте допуск или обведите часы рамкой плотнее.'; $('#btnCutUse').disabled=true; return; }
+  x.putImageData(id,0,0);
+  var o=document.createElement('canvas'); o.width=box.w; o.height=box.h;
+  o.getContext('2d').drawImage(c,box.x,box.y,box.w,box.h,0,0,box.w,box.h);
+  CUT.out=o;
+  var s=Math.min(pv.width/box.w,pv.height/box.h);
+  px.clearRect(0,0,pv.width,pv.height);
+  px.drawImage(o,(pv.width-box.w*s)/2,(pv.height-box.h*s)/2,box.w*s,box.h*s);
+  $('#cutNote').textContent='Фон убран. Если остались куски фона, увеличьте допуск. Если пропали части часов, уменьшите.';
+  $('#btnCutUse').disabled=false;
+}
+function openCut(file){
+  if(!file) return;
+  var im=new Image();
+  im.onload=function(){
+    CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null;
+    show('cut'); cutCanvasSize(); drawCut(); runCut();
+  };
+  im.onerror=function(){ toast('Не удалось открыть фото. Попробуйте другое.'); };
+  im.src=URL.createObjectURL(file);
+}
+function cutPt(e){ var c=$('#cc'), b=c.getBoundingClientRect(); return {x:Math.min(CUT.img.width,Math.max(0,(e.clientX-b.left)*c.width/b.width/CUT.sc)),y:Math.min(CUT.img.height,Math.max(0,(e.clientY-b.top)*c.height/b.height/CUT.sc))}; }
+$('#cc').addEventListener('pointerdown',function(e){ if(!CUT.img) return; try{e.target.setPointerCapture(e.pointerId);}catch(x){} CUT.drag=cutPt(e); });
+$('#cc').addEventListener('pointermove',function(e){
+  if(!CUT.drag) return; var p=cutPt(e), s=CUT.drag;
+  CUT.rect={x:Math.min(s.x,p.x),y:Math.min(s.y,p.y),w:Math.max(8,Math.abs(p.x-s.x)),h:Math.max(8,Math.abs(p.y-s.y))}; drawCut();
+});
+function endCut(){ if(!CUT.drag) return; CUT.drag=null; runCut(); }
+$('#cc').addEventListener('pointerup',endCut); $('#cc').addEventListener('pointercancel',endCut);
+$('#rngTol').addEventListener('input',function(e){ CUT.tol=+e.target.value; $('#outTol').textContent=CUT.tol; });
+$('#rngTol').addEventListener('change',runCut);
+$('#chkRound').addEventListener('change',function(e){ CUT.round=e.target.checked; runCut(); });
+$('#btnCutAll').addEventListener('click',function(){ if(!CUT.img) return; CUT.rect={x:0,y:0,w:CUT.img.width,h:CUT.img.height}; drawCut(); runCut(); });
+$('#btnCutBack').addEventListener('click',function(){ show('tryon'); });
+$('#btnCutUse').addEventListener('click',function(){
+  if(!CUT.out) return;
+  var id='custom'+(++CUT.n);
+  var w={id:id,name:'Ваши часы',custom:true,cut:CUT.out};
+  BY[id]=w; META[id]={wear:'Вырезаны из вашего фото. Двигайте их по руке пальцем.'};
+  S.custom.push(w);
+  show('tryon'); renderPicker(); setPick(id);
+  S.tx.x=CW/2; S.tx.y=S.photo?CH*.55:690; S.tx.s=1.5; S.tx.r=0; syncCtl(); draw();
+  toast('Ваши часы добавлены в примерку.');
+});
+$('#btnCut').addEventListener('click',function(){ $('#fileCut').click(); });
+$('#fileCut').addEventListener('change',function(e){ openCut(e.target.files[0]); e.target.value=''; });
+
+/* Жесты: один палец двигает, два пальца меняют размер и поворот */
+var ptrs={};
+function cpt(e){ var r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*CW/r.width,y:(e.clientY-r.top)*CH/r.height}; }
+cv.addEventListener('pointerdown',function(e){
+  try{cv.setPointerCapture(e.pointerId);}catch(x){}
+  ptrs[e.pointerId]=cpt(e);
+});
+cv.addEventListener('pointermove',function(e){
+  if(!ptrs[e.pointerId]) return;
+  var ids=Object.keys(ptrs), prev=ptrs[e.pointerId], cur=cpt(e);
+  if(ids.length===1){
+    S.tx.x+=cur.x-prev.x; S.tx.y+=cur.y-prev.y;
+  } else if(ids.length>=2){
+    var oid=ids[0]===String(e.pointerId)?ids[1]:ids[0], o=ptrs[oid];
+    var d0=Math.hypot(prev.x-o.x,prev.y-o.y), d1=Math.hypot(cur.x-o.x,cur.y-o.y);
+    var a0=Math.atan2(prev.y-o.y,prev.x-o.x), a1=Math.atan2(cur.y-o.y,cur.x-o.x);
+    if(d0>10){ S.tx.s=Math.min(3.2,Math.max(.4,S.tx.s*d1/d0)); }
+    S.tx.r+=(a1-a0)*180/Math.PI;
+    if(S.tx.r>180) S.tx.r-=360; if(S.tx.r<-180) S.tx.r+=360;
+    S.tx.x+=(cur.x-prev.x)/2; S.tx.y+=(cur.y-prev.y)/2;
+  }
+  ptrs[e.pointerId]=cur; syncCtl(); draw();
+});
+function endPtr(e){ delete ptrs[e.pointerId]; }
+cv.addEventListener('pointerup',endPtr); cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('wheel',function(e){
+  e.preventDefault();
+  S.tx.s=Math.min(3.2,Math.max(.4,S.tx.s*Math.exp(-e.deltaY*.0015))); syncCtl(); draw();
+},{passive:false});
+
+/* Сохранение снимка */
+$('#btnSave').addEventListener('click',function(){
+  try{ cv.toBlob(function(b){
+    if(!b){ toast('Не удалось подготовить снимок.'); return; }
+    var u=URL.createObjectURL(b), a=document.createElement('a'); a.href=u; a.download='primerka.png';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000);
+    toast('Снимок сохранён.');
+  },'image/png'); }catch(e){ toast('Не удалось подготовить снимок.'); }
+});
+
+})();
+</script>
+</body>
+</html>
