@@ -17,11 +17,26 @@ function geometry(lm,w,h){
   if(x<width*.2||x>w-width*.2||y<width*.2||y>h-width*.2)return null;
   return {x:x,y:y,width:width,angle:Math.atan2(dy,dx)*180/Math.PI};
 }
-window.WristDetection={geometry:geometry,detect:async function(photo){
-  var task=await detector(),c=document.createElement('canvas'),scale=Math.min(1,1280/Math.max(photo.naturalWidth||photo.width,photo.naturalHeight||photo.height));
-  c.width=Math.round((photo.naturalWidth||photo.width)*scale);c.height=Math.round((photo.naturalHeight||photo.height)*scale);c.getContext('2d').drawImage(photo,0,0,c.width,c.height);
-  var result=task.detect(c),candidates=(result.landmarks||[]).map(function(lm,i){var g=geometry(lm,c.width,c.height);if(g)g.score=(result.handedness[i]&&result.handedness[i][0]?result.handedness[i][0].score:0);return g;}).filter(function(g){return g&&g.score>=.7;});
-  if(candidates.length!==1)return null;
-  var g=candidates[0];g.x/=scale;g.y/=scale;g.width/=scale;return g;
+function unrotate(g,angle,w,h,scale){
+  var x=g.x,y=g.y;
+  if(angle===90){g.x=y;g.y=h-x;}else if(angle===-90){g.x=w-y;g.y=x;}else if(angle===180){g.x=w-x;g.y=h-y;}
+  g.x/=scale;g.y/=scale;g.width/=scale;g.angle-=angle;return g;
+}
+window.WristDetection={geometry:geometry,unrotate:unrotate,detect:async function(photo){
+  var task=await detector(),iw=photo.naturalWidth||photo.width,ih=photo.naturalHeight||photo.height;
+  var scale=Math.min(1,960/Math.max(iw,ih)),w=Math.round(iw*scale),h=Math.round(ih*scale);
+  // Sideways photos and a turned hand get another orientation attempt.
+  for(var angle of [0,90,-90,180]){
+    var c=document.createElement('canvas'),quarter=Math.abs(angle)===90;c.width=quarter?h:w;c.height=quarter?w:h;
+    var ctx=c.getContext('2d');ctx.translate(c.width/2,c.height/2);ctx.rotate(angle*Math.PI/180);ctx.drawImage(photo,-w/2,-h/2,w,h);
+    var result=task.detect(c);
+    // Handedness scores classify left/right hands, not detection confidence.
+    // Presence and detection thresholds are enforced by the model itself.
+    if((result.landmarks||[]).length>1)return null;
+    var candidates=(result.landmarks||[]).map(function(lm){return geometry(lm,c.width,c.height);}).filter(Boolean);
+    if(candidates.length===1)return unrotate(candidates[0],angle,w,h,scale);
+    await new Promise(function(resolve){setTimeout(resolve,0);});
+  }
+  return null;
 }};
 })();
