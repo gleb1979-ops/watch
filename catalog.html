@@ -282,7 +282,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
             <h2 id="tryName" data-no-translate></h2>
             <p class="mono" id="tryMeta" data-no-translate></p>
           </div>
-          <div class="watch-switch"><button class="btn" id="previousWatch" type="button">Предыдущие</button><label class="fld">Выбрать часы<select id="chooseWatch" aria-label="Выбрать часы"></select></label><button class="btn" id="nextWatch" type="button">Следующие</button></div><p class="mono" id="watchPosition" aria-live="polite"></p><div class="picker" id="picker" role="listbox" aria-label="Часы из каталога"></div>
+          <div class="watch-switch"><button class="btn" id="previousWatch" type="button">Предыдущие</button><label class="fld">Выбрать часы<select id="chooseWatch" aria-label="Выбрать часы"></select></label><button class="btn" id="nextWatch" type="button">Следующие</button></div><p class="mono" id="watchPosition" aria-live="polite"></p><div class="picker" id="publicViews" role="group" aria-label="Ракурсы"></div><div class="picker" id="picker" role="listbox" aria-label="Часы из каталога"></div>
           <div class="photo-actions">
             <button class="btn btn-primary" id="btnLive" type="button">Живая камера</button>
             <button class="btn btn-primary" id="btnShot" type="button" hidden>Снять кадр</button>
@@ -392,7 +392,7 @@ function ghBackend(){
     var p=GH.token?readList().then(function(r){ return r.list; }):fetch('watches.json?'+Date.now(),{cache:'no-store'}).then(function(r){ if(r.status===404) return []; if(!r.ok) throw new Error('http'); return r.json(); });
     return p.then(function(rows){
       return (Array.isArray(rows)?rows:[]).filter(function(r){ return r&&r.id&&r.cut&&r.photo; }).sort(function(a,b){ return (b.at||0)-(a.at||0); }).map(function(r){
-        var o=pickFields(r); o.id=String(r.id); o.at=r.at||0; o.cutPath=r.cut; o.photoPath=r.photo;
+        var o=pickFields(r); o.id=String(r.id); o.at=r.at||0; o.cutPath=r.cut; o.photoPath=r.photo;o.thumbUrl=r.thumb||r.cut;o.views=Array.isArray(r.views)?r.views:[{role:"front",cut:r.cut}];
         o.cutUrl=pending[o.id]?pending[o.id].cut:r.cut; o.photoUrl=pending[o.id]?pending[o.id].photo:r.photo;
         if(!o.name) o.name='Часы'; return o;
       });
@@ -419,23 +419,23 @@ function ghBackend(){
     }
   };
 }
-var SW={};
+var SW={},VIEW_INDEX=0;
 function toW(it){
-  var w=SW[it.id];
-  if(!w||w.url!==it.cutUrl){
+  var view=(it.views||[])[VIEW_INDEX],source=view?view.cut:it.cutUrl,w=SW[it.id];
+  if(!w||w.url!==source){
     var im=new Image(); im.crossOrigin='anonymous'; im.onload=function(){
       // Repair opaque white backgrounds left by the previous catalog exporter.
-      try{var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;var x=c.getContext('2d');x.drawImage(im,0,0);var px=x.getImageData(0,0,c.width,c.height),d=px.data;var corners=[0,(c.width-1)*4,(c.height-1)*c.width*4,(c.width*c.height-1)*4];if(corners.every(function(i){return d[i]>235&&d[i+1]>235&&d[i+2]>235&&d[i+3]===255;})){cutPixels(d,c.width,c.height,35,false);x.putImageData(px,0,0);SW[it.id].cut=c;it.displayUrl=c.toDataURL('image/png');document.querySelectorAll('[data-image-id]').forEach(function(el){if(el.dataset.imageId===it.id)el.src=it.displayUrl;});}}catch(e){}
-      draw();
-    }; im.onerror=function(){ if(it.cutPath&&im.src.indexOf('raw.githubusercontent')<0) im.src=rawUrl(it.cutPath); }; im.src=it.cutUrl;
-    w=SW[it.id]={id:it.id,cut:im,url:it.cutUrl};
+      try{var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;var x=c.getContext('2d');x.drawImage(im,0,0);var px=x.getImageData(0,0,c.width,c.height),d=px.data;var corners=[0,(c.width-1)*4,(c.height-1)*c.width*4,(c.width*c.height-1)*4];if(corners.every(function(i){return d[i]>235&&d[i+1]>235&&d[i+2]>235&&d[i+3]===255;})){cutPixels(d,c.width,c.height,35,false);x.putImageData(px,0,0);w.cut=c;it.displayUrl=c.toDataURL('image/png');document.querySelectorAll('[data-image-id]').forEach(function(el){if(el.dataset.imageId===it.id)el.src=it.displayUrl;});}}catch(e){}
+      if(S.pick===it.id&&SW[it.id]===w&&fitting)fitting.changed();draw();
+    }; im.onerror=function(){if(!im.dataset.fallback){im.dataset.fallback='1';im.src=rawUrl(source);}}; im.src=source;
+    w=SW[it.id]={id:it.id,cut:im,url:source};
   }
   w.item=it; return w;
 }
 function onItems(items){
-  Store.ready=true; Store.error=false; Store.items=items; items.forEach(toW);
+  Store.ready=true; Store.error=false; Store.items=items;SW={};
   renderCatalog();
-  if(S.view==='tryon'){renderPicker();syncWatchNavigation();}
+  if(S.view==='tryon'){renderPicker();syncWatchNavigation();var selected=Store.items.find(function(it){return it.id===S.pick;});if(selected)toW(selected);renderPublicViews();}
 }
 function initStore(){
   Store.mode='gh'; Store.canWrite=false; Store.be=ghBackend(); Store.ready=false;
@@ -468,7 +468,7 @@ function renderCatalog(){
   }
   el.innerHTML=list.map(function(it){
     var lk=safeLink(it.link);
-    return '<article class="cat-card"><div class="cat-pic"><img data-no-translate alt="'+esc(it.name)+'" src="'+esc(it.displayUrl||it.cutUrl)+'" data-image-id="'+esc(it.id)+'" data-p="'+esc(it.cutPath||'')+'" loading="lazy" decoding="async"></div><div class="cat-info">'+
+    return '<article class="cat-card"><div class="cat-pic"><img data-no-translate alt="'+esc(it.name)+'" src="'+esc(it.thumbUrl||it.displayUrl||it.cutUrl)+'" data-image-id="'+esc(it.id)+'" data-p="'+esc(it.cutPath||'')+'" loading="lazy" decoding="async"></div><div class="cat-info">'+
       '<h3 class="name" data-no-translate>'+esc(it.name)+'</h3>'+
       '<div class="cat-meta">'+(it.brand?'<span data-no-translate>'+esc(it.brand)+'</span>':'')+'<span>'+esc(GEN_N[it.gender])+'</span>'+(it.style&&STYLE_N[it.style]?'<span>'+esc(STYLE_N[it.style])+'</span>':'')+'</div>'+
       (it.price?'<p class="price" data-no-translate>'+esc(it.price)+'</p>':'')+
@@ -692,7 +692,7 @@ function syncCtl(){
 }
 function renderPicker(){
   var h=Store.items.map(function(it){
-    return '<button type="button" class="pick" role="option" data-id="'+esc(it.id)+'" aria-selected="'+(it.id===S.pick)+'"><img alt="" src="'+esc(it.cutUrl)+'"><span data-no-translate>'+esc(it.name)+'</span></button>';
+    return '<button type="button" class="pick" role="option" data-id="'+esc(it.id)+'" aria-selected="'+(it.id===S.pick)+'"><img alt="" src="'+esc(it.thumbUrl||it.cutUrl)+'" loading="lazy"><span data-no-translate>'+esc(it.name)+'</span></button>';
   }).join('');
   $('#picker').innerHTML=h||'<p class="picker-empty">В каталоге пока нет часов.</p>';
 }
@@ -700,13 +700,15 @@ function syncWatchNavigation(){var items=Store.items;$('#chooseWatch').innerHTML
 function switchWatch(step){var items=Store.items;if(!items.length)return;var index=items.findIndex(function(it){return it.id===S.pick;});var next=index<0?0:(index+step+items.length)%items.length;setPick(items[next].id);}
 $('#previousWatch').onclick=function(){switchWatch(-1);};$('#nextWatch').onclick=function(){switchWatch(1);};$('#chooseWatch').onchange=function(){setPick(this.value);};
 function setPick(id){
-  var w=SW[id]; if(!w) return;
+  var selected=Store.items.find(function(it){return it.id===id;});if(!selected)return;if(S.pick!==id){VIEW_INDEX=0;SW={};}var w=toW(selected);
   S.pick=id; var it=w.item;
   syncWatchNavigation();$('#tryName').textContent=it.name;
   $('#tryMeta').textContent=[it.brand,it.price].filter(Boolean).join(' · ');
   Array.prototype.forEach.call($('#picker').children,function(b){ b.setAttribute('aria-selected',b.dataset.id===id); });
-  if(fitting)fitting.changed();draw();
+  renderPublicViews();if(fitting)fitting.changed();draw();
 }
+function renderPublicViews(){var it=Store.items.find(function(it){return it.id===S.pick;});$('#publicViews').innerHTML=it?(it.views||[]).map(function(v,i){return '<button class="btn" type="button" data-public-view="'+i+'" aria-pressed="'+(i===VIEW_INDEX)+'">'+(i+1)+'</button>';}).join(''):'';}
+$('#publicViews').onclick=function(e){var b=e.target.closest('[data-public-view]');if(!b)return;VIEW_INDEX=Number(b.dataset.publicView);SW={};setPick(S.pick);};
 function openTry(id){
   show('tryon'); renderPicker(); resetTx();
   $('#demoBadge').hidden=!!S.photo;
@@ -787,6 +789,7 @@ initStore();
 </script>
 </body>
 </html>
+
 
 
 
