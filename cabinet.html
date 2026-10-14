@@ -206,11 +206,11 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 .try-grid{grid-template-columns:1fr;gap:24px}.stage{max-width:760px;border-radius:16px}.stage canvas{width:100%;height:auto;max-height:none;aspect-ratio:3/4}
 @media(min-width:900px){.try-grid{grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);align-items:start}.stage{position:sticky;top:12px}}
 @media(max-width:719px){.stage{width:100%;max-width:none}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
-</style>
+dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px}dialog::backdrop{background:#000a}dialog h2{margin-bottom:12px}dialog .row{margin-top:16px}.view-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-block:16px}.view-card{min-width:0;border:1px solid var(--line);border-radius:8px;padding:8px}.view-card img{width:100%;height:100px;object-fit:contain}.view-card .btn{width:100%;min-height:40px;padding:6px;font-size:.8rem}.view-card p{font-size:.8rem}</style>
 <script src="watch-fit.js?v=20261014f"></script>
 <script src="wrist.js?v=20261014a" defer></script>
-<script src="locale.js?v=20261014l" defer></script>
-<script src="watch-real.js?v=20261015-real2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014g"><script src="fitting-workspace.js?v=20261014g" defer></script><script src="watch-info-ocr.js?v=20261014l" defer></script></head>
+<script src="locale.js?v=20261014m" defer></script>
+<script src="watch-real.js?v=20261015-real2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014g"><script src="fitting-workspace.js?v=20261014g" defer></script><script src="watch-info-ocr.js?v=20261014m" defer></script></head>
 <body>
 
 <div class="wrap">
@@ -249,7 +249,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
         <div class="ctl"><label for="rngTol">Допуск фона</label><input id="rngTol" type="range" min="10" max="140" value="45"><output id="outTol">45</output></div>
         <label class="chk-row"><input id="chkRound" type="checkbox"> Оставить только круг (если фон пёстрый)</label>
         <p class="fit" id="cutNote"></p>
-        <div class="form-grid"><button class="btn" id="readWatchInfo" type="button">Заполнить из скриншота</button><input id="fileWatchInfo" type="file" accept="image/*" hidden><p class="hint" id="watchInfoStatus" role="status" aria-live="polite">Добавьте скриншот магазина с брендом, моделью и ценой.</p><label class="fld" id="extraRole" hidden>Ракурс<select id="selViewRole"><option value="angle">Под углом</option><option value="side">Сбоку</option><option value="front">Спереди</option></select></label>
+        <div id="existingViews" class="view-list"></div><div class="form-grid"><button class="btn" id="readWatchInfo" type="button">Заполнить из скриншота</button><input id="fileWatchInfo" type="file" accept="image/*" hidden><p class="hint" id="watchInfoStatus" role="status" aria-live="polite">Добавьте скриншот магазина с брендом, моделью и ценой.</p><label class="fld" id="extraRole" hidden>Ракурс<select id="selViewRole"><option value="angle">Под углом</option><option value="side">Сбоку</option><option value="front">Спереди</option></select></label>
           <div class="fld"><label for="inName">Название</label><input id="inName" type="text" maxlength="60" placeholder="Например, Seiko 5 Sports"></div>
           <div class="fld-row">
             <div class="fld"><label for="inBrand">Бренд</label><input id="inBrand" type="text" maxlength="40"></div>
@@ -317,7 +317,8 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
   </main>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
-<script>
+<dialog id="viewManager"><h2>Ракурсы часов</h2><p id="viewCount"></p><div id="viewList" class="view-list"></div><div class="row"><button class="btn btn-primary" id="addManagedView" type="button">Добавить ракурс</button><button class="btn" id="closeViewManager" type="button">Закрыть</button></div></dialog>
+<dialog id="infoManager"><h2>Данные часов</h2><p class="hint" id="cardInfoStatus" role="status"></p><div class="form-grid"><label class="fld">Название / модель<input id="cardInfoName" maxlength="60"></label><label class="fld">Бренд<input id="cardInfoBrand" maxlength="40"></label><label class="fld">Цена<input id="cardInfoPrice" maxlength="30"></label></div><input id="fileCardInfo" type="file" accept="image/*" hidden><div class="row"><button class="btn" id="chooseCardInfo" type="button">Считать скриншот</button><button class="btn btn-primary" id="saveCardInfo" type="button">Сохранить данные</button><button class="btn" id="closeInfoManager" type="button">Закрыть</button></div></dialog><script>
 (function(){
 'use strict';
 var $=function(s){return document.querySelector(s);};
@@ -373,10 +374,10 @@ function localBackend(){
  });});}
  function emit(){return load().then(function(items){subs.forEach(function(cb){cb(items);});});}
  function mutate(fn){return dbPromise.then(function(db){return new Promise(function(resolve,reject){var tx=db.transaction('watches','readwrite');fn(tx.objectStore('watches'),tx);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error);};tx.onabort=function(){reject(tx.error||new Error('Не удалось сохранить.'));};});}).then(emit);}
- return {watch:function(cb,err){if(subs.indexOf(cb)<0)subs.push(cb);emit().catch(err);},add:function(meta,cut,thumb){return mutate(function(s){s.put(Object.assign(pickFields(meta),{id:'personal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),at:Date.now(),cutBlob:cut,thumbBlob:thumb,views:[]}));});},addView:function(id,role,blob,thumb){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row||(row.views||[]).length>=2){tx.abort();return;}row.views=(row.views||[]).concat({role:role,blob:blob,thumb:thumb});s.put(row);};});},remove:function(item){return mutate(function(s){s.delete(item.id);});}};
+ return {watch:function(cb,err){if(subs.indexOf(cb)<0)subs.push(cb);emit().catch(err);},add:function(meta,cut,thumb){return mutate(function(s){s.put(Object.assign(pickFields(meta),{id:'personal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),at:Date.now(),cutBlob:cut,thumbBlob:thumb,views:[]}));});},addView:function(id,role,blob,thumb,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row){tx.abort();return;}if(index===0){row.cutBlob=blob;row.thumbBlob=thumb;}else{row.views=row.views||[];if(index!=null)row.views[index-1]={role:role,blob:blob,thumb:thumb};else{if(row.views.length>=2){tx.abort();return;}row.views.push({role:role,blob:blob,thumb:thumb});}}s.put(row);};});},removeView:function(id,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row||index<1){tx.abort();return;}row.views=(row.views||[]).filter(function(_,i){return i!==index-1;});s.put(row);};});},updateInfo:function(id,meta){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){if(!r.result){tx.abort();return;}s.put(Object.assign(r.result,pickFields(meta)));};});},remove:function(item){return mutate(function(s){s.delete(item.id);});}};
 }
 function rawUrl(path){return path;}
-var SW={},VIEW_INDEX=0,EXTRA_TARGET=null;
+var SW={},VIEW_INDEX=0,EXTRA_TARGET=null,EXTRA_INDEX=null,INFO_TARGET=null;
 var VIEW_NAMES={front:'Спереди',angle:'Под углом',side:'Сбоку'};
 function toW(it){
   var v=(it.views||[])[VIEW_INDEX],source=v?v.cutUrl:it.cutUrl;var w=SW[it.id];
@@ -430,7 +431,7 @@ function renderCatalog(){
       '<div class="cat-meta">'+(it.brand?'<span>'+esc(it.brand)+'</span>':'')+'<span>'+esc(GEN_N[it.gender])+'</span>'+(it.style&&STYLE_N[it.style]?'<span>'+esc(STYLE_N[it.style])+'</span>':'')+'</div>'+
       (it.price?'<p class="price">'+esc(it.price)+'</p>':'')+
       (lk?'<a class="cat-link" href="'+esc(lk)+'" target="_blank" rel="noopener">Страница товара</a>':'')+
-      (it.views&&it.views[0].error?'<p class="hint">Не удалось открыть фото. Попробуйте другое.</p>':'')+'<p class="mono">'+(it.views||[]).length+' / 3 · '+(it.bytes/1048576).toFixed(2)+' MB</p><div class="row"><button class="btn" type="button" data-k="view" data-id="'+esc(it.id)+'" '+((it.views||[]).length>=3?'disabled':'')+'>Добавить ракурс</button><button class="btn btn-primary" type="button" data-k="try" data-id="'+esc(it.id)+'">Примерить</button>'+(Store.canWrite?'<button class="btn" type="button" data-k="del" data-id="'+esc(it.id)+'">Удалить</button>':'')+'</div></div></article>';
+      '<p class="mono">'+(it.views||[]).length+' / 3 · '+(it.bytes/1048576).toFixed(2)+' MB</p><div class="row"><button class="btn" type="button" data-k="view" data-id="'+esc(it.id)+'">Ракурсы</button><button class="btn" type="button" data-k="info" data-id="'+esc(it.id)+'">Считать скриншот</button><button class="btn btn-primary" type="button" data-k="try" data-id="'+esc(it.id)+'">Примерить</button><button class="btn" type="button" data-k="del" data-id="'+esc(it.id)+'">Удалить</button></div></div></article>';
   }).join('');
 }
 function imageFallback(e){var t=e.target;if(!t||t.tagName!=='IMG')return;var fallback=t.dataset.fallback;if(fallback&&t.dataset.triedFallback!=='1'&&t.src!==fallback){t.dataset.triedFallback='1';t.src=fallback;}else if(t.dataset.p&&t.src.indexOf('raw.githubusercontent')<0)t.src=rawUrl(t.dataset.p);}
@@ -439,7 +440,7 @@ $('#fchips').addEventListener('click',function(e){ var b=e.target.closest('.fchi
 $('#catBody').addEventListener('click',function(e){
   var b=e.target.closest('button'); if(!b) return; if(b.id==='retryCatalog'){reloadList();return;}
   var it=Store.items.filter(function(x){ return x.id===b.dataset.id; })[0]; if(!it) return;
-  if(b.dataset.k==='view'){EXTRA_TARGET=it.id;$('#fileCut').click();return;}
+  if(b.dataset.k==='view'){openViewManager(it.id);return;}if(b.dataset.k==='info'){openInfoManager(it.id);return;}
   if(b.dataset.k==='try'){ openTry(it.id); return; }
   if(b.dataset.k==='del'){
     if(b.dataset.armed!=='1'){
@@ -544,7 +545,7 @@ function openCut(file){
   im.onload=function(){
     CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null;
     ['inName','inBrand','inPrice','inLink'].forEach(function(id){ $('#'+id).value=''; });
-    $('#inName').value='Часы '+(Store.items.length+1);var target=Store.items.find(function(it){return it.id===EXTRA_TARGET;});if(target){$('#inName').value=target.name;$('#inBrand').value=target.brand;$('#inPrice').value=target.price;$('#inLink').value=target.link;}$('#extraRole').hidden=!target;$('#selViewRole').value='angle';
+    $('#inName').value='Часы '+(Store.items.length+1);var target=Store.items.find(function(it){return it.id===EXTRA_TARGET;});if(target){$('#inName').value=target.name;$('#inBrand').value=target.brand;$('#inPrice').value=target.price;$('#inLink').value=target.link;}$('#extraRole').hidden=!target;$('#selViewRole').value=target&&EXTRA_INDEX!=null?target.views[EXTRA_INDEX].role:'angle';$('#existingViews').innerHTML=target?viewThumbs(target,false):'';
     show('edit'); cutCanvasSize(); drawCut(); runCut();
   };
   im.onerror=function(){ toast('Не удалось открыть фото. Попробуйте другое.'); };
@@ -563,17 +564,17 @@ $('#rngTol').addEventListener('change',runCut);
 $('#chkRound').addEventListener('change',function(e){ CUT.round=e.target.checked; runCut(); });
 $('#btnCutAll').addEventListener('click',function(){ if(!CUT.img) return; CUT.rect={x:0,y:0,w:CUT.img.width,h:CUT.img.height}; drawCut(); runCut(); });
 $('#btnCutBack').addEventListener('click',function(){ show('cat'); renderCatalog(); });
-$('#btnCatAdd').addEventListener('click',function(){EXTRA_TARGET=null;$('#fileCut').click();});
+$('#btnCatAdd').addEventListener('click',function(){EXTRA_TARGET=null;EXTRA_INDEX=null;$('#fileCut').click();});
 $('#fileCut').addEventListener('change',function(e){ openCut(e.target.files[0]); e.target.value=''; });
 $('#btnCutSave').addEventListener('click',function(){
   if(!CUT.out||!Store.be||!Store.canWrite) return;
-  var targetId=EXTRA_TARGET,viewRole=$('#selViewRole').value;var btn=this, link=($('#inLink').value||'').trim();
+  var targetId=EXTRA_TARGET,targetIndex=EXTRA_INDEX,viewRole=$('#selViewRole').value;var btn=this, link=($('#inLink').value||'').trim();
   if(link&&!safeLink(link)){ toast('Ссылка должна начинаться с http:// или https://'); return; }
   var meta={name:($('#inName').value||'').trim().slice(0,60)||'Часы',brand:($('#inBrand').value||'').trim().slice(0,40),price:($('#inPrice').value||'').trim().slice(0,30),gender:$('#selGender').value,style:$('#selStyle').value,link:link};
   btn.disabled=true; btn.textContent='Сохраняю…';
   var cutC=scaled(CUT.out,CUT.out.width,CUT.out.height,1200,true), thumbC=scaled(CUT.out,CUT.out.width,CUT.out.height,256,true);
   Promise.all([blobOf(cutC,'image/png'),blobOf(thumbC,'image/png')])
-    .then(function(bs){return targetId?Store.be.addView(targetId,viewRole,bs[0],bs[1]):Store.be.add(meta,bs[0],bs[1]);})
+    .then(function(bs){return targetId?Store.be.addView(targetId,viewRole,bs[0],bs[1],targetIndex):Store.be.add(meta,bs[0],bs[1]);})
     .then(function(){ toast('Часы сохранены в каталог.'); show('cat'); requestAnimationFrame(function(){renderCatalog();}); })
     .catch(function(e){ toast(saveErr(e)); })
     .then(function(){ btn.disabled=!CUT.out; btn.textContent='Сохранить в каталог'; });
@@ -665,6 +666,15 @@ function setPick(id){
 }
 function renderViews(){var it=Store.items.find(function(it){return it.id===S.pick;});$('#viewPicker').innerHTML=it?(it.views||[]).map(function(v,i){return '<button class="pick" type="button" data-view="'+i+'" aria-pressed="'+(i===VIEW_INDEX)+'"><img src="'+esc(v.thumbUrl)+'" alt="" loading="lazy"><span>'+VIEW_NAMES[v.role]+'</span></button>';}).join(''):'';}
 $('#viewPicker').onclick=function(e){var b=e.target.closest('[data-view]');if(!b)return;VIEW_INDEX=Number(b.dataset.view);SW={};setPick(S.pick);};
+function viewThumbs(it,actions){return (it.views||[]).map(function(v,i){return '<div class="view-card"><img alt="" src="'+esc(v.thumbUrl)+'"><p>'+VIEW_NAMES[v.role]+'</p>'+(actions?'<button class="btn" type="button" data-replace-view="'+i+'">Заменить</button>'+(i>0?'<button class="btn" type="button" data-remove-view="'+i+'">Удалить ракурс</button>':'<p class="mono">Основной</p>'):'')+'</div>';}).join('');}
+function openViewManager(id){EXTRA_TARGET=id;EXTRA_INDEX=null;var it=Store.items.find(function(x){return x.id===id;});if(!it)return;$('#viewCount').textContent='Уже добавлено: '+it.views.length+' / 3';$('#viewList').innerHTML=viewThumbs(it,true);$('#addManagedView').disabled=it.views.length>=3;if(!$('#viewManager').open)$('#viewManager').showModal();}
+$('#closeViewManager').onclick=function(){$('#viewManager').close();};
+$('#addManagedView').onclick=function(){EXTRA_INDEX=null;$('#viewManager').close();$('#fileCut').click();};
+$('#viewList').onclick=function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.replaceView!=null){EXTRA_INDEX=Number(b.dataset.replaceView);$('#viewManager').close();$('#fileCut').click();}else if(b.dataset.removeView!=null){b.disabled=true;Store.be.removeView(EXTRA_TARGET,Number(b.dataset.removeView)).then(function(){openViewManager(EXTRA_TARGET);}).catch(function(){b.disabled=false;toast('Не удалось сохранить.');});}};
+function openInfoManager(id){INFO_TARGET=id;var it=Store.items.find(function(x){return x.id===id;});if(!it)return;$('#cardInfoName').value=it.name;$('#cardInfoBrand').value=it.brand;$('#cardInfoPrice').value=it.price;$('#cardInfoStatus').textContent='Добавьте скриншот магазина с брендом, моделью и ценой.';$('#infoManager').showModal();$('#fileCardInfo').click();}
+$('#closeInfoManager').onclick=function(){$('#infoManager').close();};$('#chooseCardInfo').onclick=function(){$('#fileCardInfo').click();};
+$('#fileCardInfo').onchange=async function(){var file=this.files[0],id=INFO_TARGET;this.value='';if(!file)return;$('#chooseCardInfo').disabled=true;$('#saveCardInfo').disabled=true;$('#cardInfoStatus').textContent='Читаем данные со скриншота…';try{var fields=await WatchInfoOCR.read(file);if(INFO_TARGET!==id)return;[['cardInfoName','name'],['cardInfoBrand','brand'],['cardInfoPrice','price']].forEach(function(p){if(fields[p[1]])$('#'+p[0]).value=fields[p[1]];});$('#cardInfoStatus').textContent='Данные заполнены. Проверьте бренд, модель, цену и валюту перед сохранением.';}catch(e){$('#cardInfoStatus').textContent='Распознавание недоступно. Поля можно заполнить вручную.';}finally{$('#chooseCardInfo').disabled=false;$('#saveCardInfo').disabled=false;}};
+$('#saveCardInfo').onclick=function(){var it=Store.items.find(function(x){return x.id===INFO_TARGET;});if(!it)return;var meta=Object.assign({},it,{name:$('#cardInfoName').value.trim(),brand:$('#cardInfoBrand').value.trim(),price:$('#cardInfoPrice').value.trim()});this.disabled=true;Store.be.updateInfo(INFO_TARGET,meta).then(function(){$('#infoManager').close();}).catch(function(){toast('Не удалось сохранить.');}).then(function(){$('#saveCardInfo').disabled=false;});};
 function openTry(id){
   show('tryon'); renderPicker(); resetTx();
   $('#demoBadge').hidden=!!S.photo;
@@ -745,6 +755,7 @@ initStore();
 </script>
 </body>
 </html>
+
 
 
 
