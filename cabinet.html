@@ -206,10 +206,10 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 .try-grid{grid-template-columns:1fr;gap:24px}.stage{max-width:760px;border-radius:16px}.stage canvas{width:100%;height:auto;max-height:none;aspect-ratio:3/4}
 @media(min-width:900px){.try-grid{grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);align-items:start}.stage{position:sticky;top:12px}}
 @media(max-width:719px){.stage{width:100%;max-width:none}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
-dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px}dialog::backdrop{background:#000a}dialog h2{margin-bottom:12px}dialog .row{margin-top:16px}.view-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-block:16px}.view-card{min-width:0;border:1px solid var(--line);border-radius:8px;padding:8px}.view-card img{width:100%;height:100px;object-fit:contain}.view-card .btn{width:100%;min-height:40px;padding:6px;font-size:.8rem}.view-card p{font-size:.8rem}</style>
+dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px}dialog::backdrop{background:#000a}dialog h2{margin-bottom:12px}dialog .row{margin-top:16px}.view-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-block:16px}.view-card{min-width:0;border:1px solid var(--line);border-radius:8px;padding:8px}.view-card img{width:100%;height:100px;object-fit:contain}.view-card .btn{width:100%;min-height:40px;padding:6px;font-size:.8rem}.view-card p{font-size:.8rem}.watch-switch{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:end}.watch-switch .btn{font-size:.8rem;padding-inline:8px;min-height:44px}.watch-switch .fld{font-size:.8rem}.watch-switch select{min-height:44px;max-width:100%}</style>
 <script src="watch-fit.js?v=20261014f"></script>
 <script src="wrist.js?v=20261014a" defer></script>
-<script src="locale.js?v=20261014o" defer></script>
+<script src="locale.js?v=20261014p" defer></script>
 <script src="watch-real.js?v=20261015-real2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014g"><script src="fitting-workspace.js?v=20261014g" defer></script><script src="watch-info-ocr.js?v=20261014m" defer></script></head>
 <body>
 
@@ -281,7 +281,7 @@ dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--sur
             <h2 id="tryName"></h2>
             <p class="mono" id="tryMeta"></p>
           </div>
-          <div class="picker" id="viewPicker" role="group" aria-label="Ракурсы часов"></div><div class="picker" id="picker" role="listbox" aria-label="Часы из каталога"></div>
+          <div class="picker" id="viewPicker" role="group" aria-label="Ракурсы часов"></div><div class="watch-switch"><button class="btn" id="previousWatch" type="button">Предыдущие</button><label class="fld">Выбрать часы<select id="chooseWatch" aria-label="Выбрать часы"></select></label><button class="btn" id="nextWatch" type="button">Следующие</button></div><p class="mono" id="watchPosition" aria-live="polite"></p><div class="picker" id="picker" role="listbox" aria-label="Часы из каталога"></div>
           <div class="photo-actions">
             <button class="btn btn-primary" id="btnLive" type="button">Живая камера</button>
             <button class="btn btn-primary" id="btnShot" type="button" hidden>Снять кадр</button>
@@ -395,7 +395,7 @@ function toW(it){
 function onItems(items){
   Store.ready=true; Store.error=false; Store.items=items;SW={};
   renderCatalog();
-  if(S.view==='tryon'){renderPicker();var selected=Store.items.find(function(it){return it.id===S.pick;});if(selected)toW(selected);renderViews();}
+  if(S.view==='tryon'){renderPicker();syncWatchNavigation();var selected=Store.items.find(function(it){return it.id===S.pick;});if(selected)toW(selected);renderViews();}
 }
 function initStore(){
   Store.mode='local'; Store.canWrite=true; Store.be=localBackend(); Store.ready=false;
@@ -658,10 +658,13 @@ function renderPicker(){
   }).join('');
   $('#picker').innerHTML=h||'<p class="picker-empty">В каталоге пока нет часов.</p>';
 }
+function syncWatchNavigation(){var items=Store.items;$('#chooseWatch').innerHTML=items.map(function(it){return '<option value="'+esc(it.id)+'">'+esc([it.brand,it.name].filter(Boolean).join(' · '))+'</option>';}).join('');$('#chooseWatch').value=S.pick||'';$('#chooseWatch').disabled=!items.length;$('#previousWatch').disabled=items.length<2;$('#nextWatch').disabled=items.length<2;var index=items.findIndex(function(it){return it.id===S.pick;});$('#watchPosition').textContent=index>=0?(index+1)+' / '+items.length:'';}
+function switchWatch(step){var items=Store.items;if(!items.length)return;var index=items.findIndex(function(it){return it.id===S.pick;});var next=index<0?0:(index+step+items.length)%items.length;setPick(items[next].id);}
+$('#previousWatch').onclick=function(){switchWatch(-1);};$('#nextWatch').onclick=function(){switchWatch(1);};$('#chooseWatch').onchange=function(){setPick(this.value);};
 function setPick(id){
   var selected=Store.items.find(function(it){return it.id===id;});if(!selected)return;if(S.pick!==id){VIEW_INDEX=0;SW={};}var w=toW(selected);
   S.pick=id; var it=w.item;
-  $('#tryName').textContent=it.name;
+  syncWatchNavigation();$('#tryName').textContent=it.name;
   $('#tryMeta').textContent=[it.brand,it.price].filter(Boolean).join(' · ');
   Array.prototype.forEach.call($('#picker').children,function(b){ b.setAttribute('aria-selected',b.dataset.id===id); });
   renderViews();if(fitting)fitting.changed();draw();
