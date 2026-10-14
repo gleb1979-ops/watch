@@ -9,7 +9,8 @@
 (function(){
 'use strict';
 var cache=typeof WeakMap==='function'?new WeakMap():null;
-var MAX=900;
+var MAX=1800;
+var sceneCache=typeof WeakMap==='function'?new WeakMap():null;
 
 function canvas(w,h){var c=document.createElement('canvas');c.width=Math.max(1,Math.round(w));c.height=Math.max(1,Math.round(h));return c;}
 
@@ -64,13 +65,16 @@ function prepare(img){
 function ambient(ctx,cw,ch){
   try{
     var m=ctx.getTransform(),p=m.transformPoint(new DOMPoint(0,0)),sc=Math.hypot(m.a,m.b);
+    var signature=[Math.round(p.x/12),Math.round(p.y/12),Math.round(sc*10),ctx.canvas.width,ctx.canvas.height].join(':');
+    var time=typeof performance!=='undefined'?performance.now():Date.now(),cached=sceneCache&&sceneCache.get(ctx);
+    if(cached&&cached.signature===signature&&time-cached.time<120)return cached.value;
     var r=Math.max(6,Math.min(160,cw*.45*sc)),c=ctx.canvas;
     var x0=Math.max(0,Math.round(p.x-r)),y0=Math.max(0,Math.round(p.y-r)),x1=Math.min(c.width,Math.round(p.x+r)),y1=Math.min(c.height,Math.round(p.y+r));
     if(x1-x0<4||y1-y0<4)return null;
     var d=ctx.getImageData(x0,y0,x1-x0,y1-y0).data,R=0,G=0,B=0,L=[],step=4*Math.max(1,Math.floor((x1-x0)*(y1-y0)/4000));
     for(var i=0;i<d.length;i+=step){R+=d[i];G+=d[i+1];B+=d[i+2];L.push(.2126*d[i]+.7152*d[i+1]+.0722*d[i+2]);}
     var n=L.length;if(!n)return null;L.sort(function(a,b){return a-b;});
-    return {r:R/n,g:G/n,b:B/n,light:L[n>>1],contrast:L[Math.floor(n*.9)]-L[Math.floor(n*.1)]};
+    var value={r:R/n,g:G/n,b:B/n,light:L[n>>1],contrast:L[Math.floor(n*.9)]-L[Math.floor(n*.1)]};if(sceneCache)sceneCache.set(ctx,{signature:signature,time:time,value:value});return value;
   }catch(e){return null;}
 }
 
@@ -98,18 +102,18 @@ function draw(ctx,img,opt){
   }
   var pT=proj(0),pB=proj(P.h),outH=pB.y-pT.y;
   if(!work)work=canvas(1,1);
-  var k=Math.min(1,Math.max(.35,cw*sc*1.25/P.w)); // render at screen resolution, never above source
+  var k=Math.min(1,Math.max(.35,cw*sc*1.8/P.w)); // render at screen resolution, never above source
   var W=Math.ceil(P.w*k*Math.max(1,bandWidth)),H=Math.ceil(outH*k)+2;
   if(work.width!==W||work.height!==H){work.width=W;work.height=H;}
   var wx=work.getContext('2d');wx.setTransform(1,0,0,1,0,0);wx.globalCompositeOperation='source-over';wx.globalAlpha=1;wx.clearRect(0,0,W,H);wx.imageSmoothingQuality='high';
-  var step=Math.max(1,Math.round(2/k)),y,a,b,yy0,yy1,taper;
+  var step=Math.max(1,Math.ceil(1/k)),y,a,b,yy0,yy1,taper;
   for(y=0;y<P.h;y+=step){
     var h2=Math.min(step,P.h-y);a=proj(y);b=proj(y+h2);
     yy0=(a.y-pT.y)*k;yy1=(b.y-pT.y)*k;if(yy1-yy0<.05)continue;
     taper=1-(1-(a.c+b.c)/2)*.10; // slight narrowing as the band turns away
     var blend=Math.min(1,Math.max(0,y<top?(top-y)/(P.h*.05):y>bot?(y-bot)/(P.h*.05):0));
     var dw=P.w*k*taper*(1+(bandWidth-1)*blend);
-    wx.drawImage(P.img,0,y,P.w,h2,(W-dw)/2,yy0,dw,yy1-yy0+.6);
+    wx.drawImage(P.img,0,y,P.w,h2,(W-dw)/2,yy0,dw,yy1-yy0+.25);
   }
   wx.globalCompositeOperation='source-atop';
   // Shade: bracelet darkens where it turns away from the light.
@@ -127,7 +131,7 @@ function draw(ctx,img,opt){
   if(amb){
     if(!work.mask)work.mask=canvas(1,1);var mk=work.mask;if(mk.width!==W||mk.height!==H){mk.width=W;mk.height=H;}
     var mx2=mk.getContext('2d');mx2.clearRect(0,0,W,H);mx2.drawImage(work,0,0);
-    wx.globalAlpha=.22;wx.globalCompositeOperation='soft-light';
+    wx.globalAlpha=.12;wx.globalCompositeOperation='soft-light';
     wx.fillStyle='rgb('+Math.round(amb.r)+','+Math.round(amb.g)+','+Math.round(amb.b)+')';wx.fillRect(0,0,W,H);
     wx.globalAlpha=1;wx.globalCompositeOperation='destination-in';wx.drawImage(mk,0,0);
   }
@@ -149,13 +153,21 @@ function draw(ctx,img,opt){
   [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){ix.drawImage(work,d[0],d[1]);});
   rx.globalCompositeOperation='destination-out';rx.drawImage(inner,0,0);
   rx.globalCompositeOperation='source-in';var rimLight=rx.createLinearGradient(0,0,W,H);
-  rimLight.addColorStop(0,'rgba(255,255,255,.24)');rimLight.addColorStop(.55,'rgba(255,255,255,.04)');rimLight.addColorStop(1,'rgba(0,0,0,.10)');
+  rimLight.addColorStop(0,'rgba(255,255,255,.30)');rimLight.addColorStop(.55,'rgba(255,255,255,.04)');rimLight.addColorStop(1,'rgba(0,0,0,.12)');
   rx.fillStyle=rimLight;rx.fillRect(0,0,W,H);wx.globalCompositeOperation='source-over';wx.drawImage(rim,0,0);
   // Faint glass reflection over the case.
   wx.globalCompositeOperation='source-atop';
   var cy0=(top-mid-pT.y)*k,cy1=(bot-mid-pT.y)*k,gl=wx.createLinearGradient(W*.15,cy0,W*.75,cy1);
   gl.addColorStop(0,'rgba(255,255,255,0)');gl.addColorStop(.32,'rgba(255,255,255,.14)');gl.addColorStop(.40,'rgba(255,255,255,.035)');gl.addColorStop(.62,'rgba(255,255,255,0)');
   wx.fillStyle=gl;wx.fillRect(0,cy0,W,cy1-cy0);
+  // Broad soft-box reflection: gently domed glass, clipped to existing watch pixels.
+  // Nothing is painted into transparent areas or substituted for the original dial.
+  var dome=wx.createRadialGradient(W*.34,cy0+(cy1-cy0)*.24,0,W*.5,(cy0+cy1)/2,Math.max(W*.55,(cy1-cy0)*.65));
+  dome.addColorStop(0,'rgba(255,255,255,.055)');
+  dome.addColorStop(.42,'rgba(255,255,255,.018)');
+  dome.addColorStop(.72,'rgba(255,255,255,0)');
+  dome.addColorStop(1,'rgba(0,0,0,.045)');
+  wx.fillStyle=dome;wx.fillRect(0,cy0,W,cy1-cy0);
   wx.globalCompositeOperation='source-over';
 
   var outputWidth=W/k/P.w*cw,dx=-outputWidth/2,dy=pT.y/P.w*cw,dh=H/k/P.w*cw;
@@ -163,9 +175,9 @@ function draw(ctx,img,opt){
   ctx.shadowColor='transparent';
   // Soft contact shadow, shaped like the watch, slightly below it.
   if(shadow>0){
-    var bl=Math.max(2,cw*.06*sc),off=cw*.035;
+    var bl=Math.max(2,cw*.042*sc),off=cw*.019;
     ctx.save();
-    ctx.shadowColor='rgba(15,8,4,'+Math.min(.9,shadow*1.6)+')';
+    ctx.shadowColor='rgba(15,8,4,'+Math.min(.9,shadow*1.35)+')';
     ctx.shadowBlur=bl;
     // Draw the shape far off-canvas and let only its shadow land back under the watch.
     var far=5000/sc,ox=off*.35,oy=off;
@@ -175,11 +187,11 @@ function draw(ctx,img,opt){
     ctx.restore();
     // Tight contact line right under the edges.
     var o2=cw*.008;
-    ctx.save();ctx.shadowColor='rgba(0,0,0,'+Math.min(.75,shadow*1.8)+')';ctx.shadowBlur=Math.max(1,cw*.012*sc);
+    ctx.save();ctx.shadowColor='rgba(0,0,0,'+Math.min(.75,shadow*1.8)+')';ctx.shadowBlur=Math.max(1,cw*.009*sc);
     ctx.shadowOffsetX=far*m.a+o2*m.c;ctx.shadowOffsetY=far*m.b+o2*m.d;ctx.translate(-far,0);ctx.drawImage(work,dx,dy,outputWidth,dh);ctx.restore();
   }
   // Brightness matched to the scene.
-  var light=opt.light!=null?opt.light:amb?Math.max(.8,Math.min(1.06,.98+(amb.light-150)*.0012)):1;
+  var light=opt.light!=null?Math.max(.55,Math.min(1.5,opt.light)):amb?Math.max(.82,Math.min(1.08,.985+(amb.light-150)*.001)):1;
   var hasFilter='filter' in ctx;
   if(hasFilter&&Math.abs(light-1)>.01)ctx.filter='brightness('+light+')';
   ctx.drawImage(work,dx,dy,outputWidth,dh);
