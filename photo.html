@@ -202,6 +202,23 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 .language-picker{display:inline-flex;gap:3px;align-items:center;direction:ltr}.language-picker button{background:transparent;border:1px solid var(--line);border-radius:5px;color:var(--muted);font:inherit;font-size:.75rem;min-height:40px;padding:7px 10px;cursor:pointer}.language-picker button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}[dir="rtl"] .opt{text-align:right;align-items:flex-start}[dir="rtl"] .cal li{border-left-width:1px;border-right-width:4px}[dir="rtl"] .ctl output{text-align:left}[dir="rtl"] .hero h1{font-family:var(--f-display);letter-spacing:-.015em}[dir="rtl"] .track{direction:ltr}[dir="rtl"] .brand{direction:ltr}[dir="rtl"] .badge{left:auto;right:10px}.cat-pic img{object-fit:contain}.form-note{padding:14px;border:1px solid var(--line);border-radius:8px;margin-bottom:20px;color:var(--muted);font-size:.85rem}body[data-embed="true"] .language-picker{display:none}
 .photo-fit{border:1px solid var(--line);border-radius:10px;padding:14px}.photo-fit summary{cursor:pointer;font-weight:600}.photo-fit .ctl{margin-block:12px}.photo-fit .hint{margin-block:10px}
 #btnLive,#btnCam,#btnShot,#btnFlip,#fileCam,#vid,#demoBadge{display:none!important}.photo-actions #btnGal{flex:1;width:100%;background:var(--accent);color:var(--accent-ink);font-weight:700}.stage{width:min(100%,48.75svh);max-height:none}.stage canvas{height:auto;max-height:none}.panel .row:has(#modeWatch){position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:2}@media(max-width:720px){.topbar{margin-bottom:16px}.try-grid{gap:14px}.stage{max-width:100%;margin-inline:auto}.stage canvas{aspect-ratio:3/4}.panel{gap:10px}.photo-fit{padding:10px}}
+
+.control-card{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.nudge{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.nudge .btn{padding:6px;min-width:0}
+.editor-modes{flex-wrap:nowrap}.editor-modes .btn{flex:1;padding:10px;font-size:.85rem}
+#editHint{padding:8px 12px;border-left:3px solid var(--accent);background:var(--surface)}
+#v-try .stage{position:sticky;top:8px;z-index:3;width:min(100%,48.75svh)}
+#v-try .panel .editor-modes{position:static}
+@media(max-width:720px){
+ body{padding-inline:12px}.topbar{min-height:56px;margin-bottom:12px;padding-block:6px}
+ #v-try .try-grid{gap:10px}
+ #v-try .stage{top:0;width:min(100%,30svh);box-shadow:0 3px 15px #0008}
+ #v-try .panel{gap:8px}
+ #v-try .panel>div:has(#tryName),#v-try .picker{display:none}
+ .control-card{padding:10px}.ctl{grid-template-columns:90px 1fr 40px}
+ .ctl input[type=range]{min-height:36px}
+ .photo-actions .btn{min-height:44px}
+}
 </style>
 <script src="locale.js?v=20261014photo" defer></script></head>
 <body>
@@ -284,25 +301,35 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
           </div>
           <input id="fileCam" type="file" accept="image/*" capture="environment" hidden>
           <input id="fileGal" type="file" accept="image/*" hidden>
-          <div class="row"><button class="btn btn-primary" id="modeWatch" type="button" aria-pressed="false">Настроить часы</button><button class="btn" id="modeScene" type="button" aria-pressed="true">Рука + часы</button><button class="btn" id="toggleWatch" type="button" aria-pressed="false">Скрыть часы</button></div>
-<div class="ctl"><label for="sceneScale">Масштаб фото</label><input id="sceneScale" type="range" min="25" max="400" value="100"><output id="sceneScaleOut">1.0×</output></div>
+<div class="editor-modes row">
+<button class="btn btn-primary" id="modeWatch" type="button" aria-pressed="true">1. Подогнать часы</button>
+<button class="btn" id="modeScene" type="button" aria-pressed="false">2. Посмотреть результат</button>
+</div>
+<p id="editHint" class="hint" role="status">Фото зафиксировано. Двигайте только часы; двумя пальцами меняйте их размер и угол.</p>
+<div id="watchControls" class="control-card">
+<button class="btn" id="placeWrist" type="button" aria-pressed="false">Указать место на запястье</button>
+<div class="ctl"><label for="rngScale">Размер часов</label><input id="rngScale" type="range" min="25" max="250" value="100"><output id="outScale">1.0×</output></div>
+<div class="ctl"><label for="fitWidth">Ширина</label><input id="fitWidth" type="range" min="30" max="140" value="100"><output id="fitWidthOut">100%</output></div>
+<div class="ctl"><label for="fitLength">Длина браслета</label><input id="fitLength" type="range" min="40" max="140" value="100"><output id="fitLengthOut">100%</output></div>
+<div class="ctl"><label for="rngRot">Угол часов</label><input id="rngRot" type="range" min="-180" max="180" value="0"><output id="outRot">0°</output></div>
+<div class="nudge" aria-label="Точная настройка положения">
+<button class="btn" type="button" data-nudge="0,-4" aria-label="Часы вверх">↑</button><button class="btn" type="button" data-nudge="-4,0" aria-label="Часы влево">←</button><button class="btn" type="button" data-nudge="4,0" aria-label="Часы вправо">→</button><button class="btn" type="button" data-nudge="0,4" aria-label="Часы вниз">↓</button>
+<button class="btn" type="button" data-angle="-1" aria-label="Поворот на один градус влево">−1°</button><button class="btn" type="button" data-angle="1" aria-label="Поворот на один градус вправо">+1°</button>
+</div>
+<details class="photo-fit"><summary>Перспектива и тень</summary>
+<div class="ctl"><label for="fitSlant">Наклон</label><input id="fitSlant" type="range" min="-35" max="35" value="0"><output id="fitSlantOut">0°</output></div>
+<div class="ctl"><label for="fitShadow">Тень</label><input id="fitShadow" type="range" min="0" max="70" value="25"><output id="fitShadowOut">25%</output></div>
+<button class="btn" id="fitReset" type="button">Сбросить посадку</button></details>
+<button class="btn" id="btnReset" type="button">Сбросить положение часов</button>
+</div>
+<div id="sceneControls" class="control-card" hidden>
+<p class="hint">Поворачивайте и приближайте фото двумя пальцами. Часы сохраняют положение на руке.</p>
+<div class="ctl"><label for="sceneScale">Масштаб фото</label><input id="sceneScale" type="range" min="75" max="250" value="100"><output id="sceneScaleOut">1.0×</output></div>
 <div class="ctl"><label for="sceneRot">Поворот фото</label><input id="sceneRot" type="range" min="-180" max="180" value="0"><output id="sceneRotOut">0°</output></div>
-<button class="btn" id="resetScene" type="button">Сбросить фото</button>
-<p class="hint">Рука + часы: один палец перемещает всё фото, два пальца приближают и поворачивают. Чтобы подогнать часы отдельно, нажмите «Настроить часы».</p>
-<details class="photo-fit" open><summary>Посадка часов на фото</summary>
-<p class="hint">Загрузите фото своей руки без часов. Сначала подгоните часы в режиме «Часы», затем выберите «Рука + часы» для совместного поворота и приближения.</p>
-<div class="ctl"><label for="fitWidth">Ширина часов</label><input id="fitWidth" type="range" min="55" max="130" value="100"><output id="fitWidthOut">100%</output></div>
-<div class="ctl"><label for="fitSlant">Наклон часов</label><input id="fitSlant" type="range" min="-35" max="35" value="0"><output id="fitSlantOut">0°</output></div>
-<div class="ctl"><label for="fitShadow">Тень на руке</label><input id="fitShadow" type="range" min="0" max="70" value="25"><output id="fitShadowOut">25%</output></div>
-<button class="btn" id="fitReset" type="button">Сбросить посадку</button>
-<p class="hint">Поворот общей фотографии сохраняет положение часов на руке. Это фотографическая примерка; вид сбоку не создаётся автоматически.</p></details>
-<div class="ctl"><label for="rngScale">Размер</label><input id="rngScale" type="range" min="40" max="320" value="150"><output id="outScale">1.5×</output></div>
-          <div class="ctl"><label for="rngRot">Поворот</label><input id="rngRot" type="range" min="-180" max="180" value="0"><output id="outRot">0°</output></div>
-          <div class="row">
-            <button class="btn" id="btnReset" type="button">Сбросить положение</button>
-            <button class="btn" id="btnSave" type="button">Сохранить снимок</button>
-          </div>
-          <p class="hint">Перетащите часы на запястье. Двумя пальцами можно менять размер и поворот.</p>
+<button class="btn" id="resetScene" type="button">Вернуть фото в центр</button>
+<p class="hint">Поворот в плоскости фотографии; боковые ракурсы не создаются.</p>
+</div>
+<div class="row"><button class="btn" id="toggleWatch" type="button" aria-pressed="false">Скрыть часы</button><button class="btn btn-primary" id="btnSave" type="button">Сохранить результат</button></div>
         </div>
       </div>
     </section>
@@ -612,11 +639,11 @@ $('#btnCutSave').addEventListener('click',function(){
 });
 
 /* ---------- Примерка ---------- */
-var FIT={width:100,slant:0,shadow:25};
-var VIEW={x:450,y:600,s:1,r:0},EDIT='scene',WATCH_VISIBLE=true;
+var FIT={width:100,length:100,slant:0,shadow:25};
+var VIEW={x:450,y:600,s:1,r:0},EDIT='watch',WATCH_VISIBLE=true;
 var cv=$('#cv'), ctx=cv.getContext?cv.getContext('2d'):null, CW=900, CH=1200, PX=2;
 var vid=$('#vid'), LIVE={on:false,stream:null,face:'environment',raf:0,request:0};
-function resetTx(){ S.tx={x:CW/2,y:S.photo?CH*.55:690,s:1.5,r:0}; syncCtl(); }
+function resetTx(){ S.tx={x:CW/2,y:S.photo?CH*.55:690,s:1,r:0}; syncCtl(); }
 function drawDemo(c){c.fillStyle='#202624';c.fillRect(0,0,CW,CH);c.fillStyle='#d7b67a';c.font='32px system-ui';c.textAlign='center';c.fillText('Загрузите фото своей руки',CW/2,CH/2);c.font='23px system-ui';c.fillText('Нажмите «Выбрать фото»',CW/2,CH/2+48);return;
 
   var g=c.createLinearGradient(0,0,0,CH); g.addColorStop(0,'#dde2e4'); g.addColorStop(1,'#c3cacd');
@@ -653,7 +680,7 @@ $('#btnShot').addEventListener('click',function(){
   im.src=c.toDataURL('image/jpeg',.95);
 });
 function draw(){
-  if(!ctx) return;
+  if(!ctx) return; constrain();syncCtl();syncView();
   ctx.setTransform(PX,0,0,PX,0,0); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
   ctx.clearRect(0,0,CW,CH);
   ctx.fillStyle="#202624";ctx.fillRect(0,0,CW,CH);ctx.save();ctx.translate(VIEW.x,VIEW.y);ctx.rotate(VIEW.r*Math.PI/180);ctx.scale(VIEW.s,VIEW.s);ctx.translate(-CW/2,-CH/2);
@@ -661,7 +688,7 @@ function draw(){
   var w=SW[S.pick]; if(!S.photo||!WATCH_VISIBLE||!w||!w.cut.width||(w.cut.tagName==='IMG'&&(!w.cut.complete||!w.cut.naturalWidth))){ctx.restore();return;}
   ctx.save();
   ctx.translate(S.tx.x,S.tx.y); ctx.rotate(S.tx.r*Math.PI/180); ctx.scale(S.tx.s,S.tx.s);
-  ctx.transform(FIT.width/100,0,Math.tan(FIT.slant*Math.PI/180),1,0,0);
+  ctx.transform(FIT.width/100,0,Math.tan(FIT.slant*Math.PI/180)*FIT.length/100,FIT.length/100,0,0);
   ctx.shadowColor='rgba(20,12,7,'+(FIT.shadow/100)+')';ctx.shadowBlur=5;ctx.shadowOffsetX=1;ctx.shadowOffsetY=3;
   var cw=200, ch=200*w.cut.height/w.cut.width;
   ctx.drawImage(w.cut,-cw/2,-ch/2,cw,ch);
@@ -687,7 +714,7 @@ function setPick(id){
 }
 function openTry(id){
   show('tryon'); renderPicker(); resetTx();
-  $('#demoBadge').hidden=true;editMode('scene');
+  $('#demoBadge').hidden=true;editMode('watch');
   setPick(id);
 }
 $('#picker').addEventListener('click',function(e){ var b=e.target.closest('.pick'); if(b) setPick(b.dataset.id); });
@@ -696,8 +723,8 @@ function loadPhoto(file){
   if(!file) return; stopLive();
   var url=URL.createObjectURL(file), im=new Image();
   im.onload=function(){
-    S.photo=im; $('#demoBadge').hidden=true; WATCH_VISIBLE=true;$('#toggleWatch').textContent='Скрыть часы';$('#toggleWatch').setAttribute('aria-pressed','false');editMode('scene');resetView();resetTx(); draw();
-    toast('Фото загружено. Перетащите часы на запястье.');
+    S.photo=im; $('#demoBadge').hidden=true; WATCH_VISIBLE=true;$('#toggleWatch').textContent='Скрыть часы';$('#toggleWatch').setAttribute('aria-pressed','false');editMode('watch');resetView();resetTx(); draw();
+    toast('Фото зафиксировано. Укажите место на запястье и подгоните часы.');
   };
   im.onerror=function(){ toast('Не удалось открыть фото. Попробуйте другое.'); };
   im.addEventListener('load',function(){URL.revokeObjectURL(url);}); im.addEventListener('error',function(){URL.revokeObjectURL(url);}); im.src=url;
@@ -708,8 +735,8 @@ $('#fileCam').addEventListener('change',function(e){ loadPhoto(e.target.files[0]
 $('#fileGal').addEventListener('change',function(e){ loadPhoto(e.target.files[0]); e.target.value=''; });
 $('#btnReset').addEventListener('click',function(){ resetTx(); draw(); });
 
-['Width','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
-$('#fitReset').addEventListener('click',function(){FIT={width:100,slant:0,shadow:25};['Width','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
+['Width','Length','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
+$('#fitReset').addEventListener('click',function(){FIT={width:100,length:100,slant:0,shadow:25};['Width','Length','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
 
 $('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; syncCtl(); draw(); });
 $('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; syncCtl(); draw(); });
@@ -721,18 +748,44 @@ function localPoint(p){var a=-VIEW.r*Math.PI/180,x=p.x-VIEW.x,y=p.y-VIEW.y;retur
 function activePoint(p){return EDIT==='watch'?localPoint(p):p;}
 function beginGesture(){var ids=Object.keys(ptrs).slice(0,2),ps=ids.map(function(id){return activePoint(ptrs[id]);});var t=EDIT==='watch'?S.tx:VIEW;gesture={ids:ids,ps:ps,tx:{x:t.x,y:t.y,s:t.s,r:t.r}};}
 function wrapAngle(a){return ((a+180)%360+360)%360-180;}
-cv.addEventListener('pointerdown',function(e){if(e.button&&e.button!==0)return;e.preventDefault();cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=cpt(e);beginGesture();});
+cv.addEventListener('pointerdown',function(e){if(e.button&&e.button!==0)return;e.preventDefault();if(!S.photo)return;if(PLACE){var p=localPoint(cpt(e));S.tx.x=p.x;S.tx.y=p.y;PLACE=false;$('#placeWrist').setAttribute('aria-pressed','false');draw();return;}cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=cpt(e);beginGesture();});
 cv.addEventListener('pointermove',function(e){if(!ptrs[e.pointerId]||!gesture)return;e.preventDefault();ptrs[e.pointerId]=cpt(e);var g=gesture,t=EDIT==='watch'?S.tx:VIEW,ps=g.ids.map(function(id){return activePoint(ptrs[id]);}),a=g.ps[0],b=ps[0];
-if(ps.length===1){t.x=g.tx.x+b.x-a.x;t.y=g.tx.y+b.y-a.y;}else{var a2=g.ps[1],b2=ps[1],old={x:(a.x+a2.x)/2,y:(a.y+a2.y)/2},now={x:(b.x+b2.x)/2,y:(b.y+b2.y)/2};var d=Math.hypot(a2.x-a.x,a2.y-a.y),ratio=d>1?Math.hypot(b2.x-b.x,b2.y-b.y)/d:1;var angle=wrapAngle((Math.atan2(b2.y-b.y,b2.x-b.x)-Math.atan2(a2.y-a.y,a2.x-a.x))*180/Math.PI);t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,g.tx.s*ratio));ratio=t.s/g.tx.s;var rad=angle*Math.PI/180,x=g.tx.x-old.x,y=g.tx.y-old.y;t.x=now.x+ratio*(x*Math.cos(rad)-y*Math.sin(rad));t.y=now.y+ratio*(x*Math.sin(rad)+y*Math.cos(rad));t.r=wrapAngle(g.tx.r+angle);}syncCtl();syncView();draw();});
+if(ps.length===1){t.x=g.tx.x+b.x-a.x;t.y=g.tx.y+b.y-a.y;}else{var a2=g.ps[1],b2=ps[1],old={x:(a.x+a2.x)/2,y:(a.y+a2.y)/2},now={x:(b.x+b2.x)/2,y:(b.y+b2.y)/2};var d=Math.hypot(a2.x-a.x,a2.y-a.y),ratio=d>1?Math.hypot(b2.x-b.x,b2.y-b.y)/d:1;var angle=wrapAngle((Math.atan2(b2.y-b.y,b2.x-b.x)-Math.atan2(a2.y-a.y,a2.x-a.x))*180/Math.PI);t.s=Math.min(EDIT==='watch'?2.5:2.5,Math.max(EDIT==='watch'?.25:.75,g.tx.s*ratio));ratio=t.s/g.tx.s;var rad=angle*Math.PI/180,x=g.tx.x-old.x,y=g.tx.y-old.y;t.x=now.x+ratio*(x*Math.cos(rad)-y*Math.sin(rad));t.y=now.y+ratio*(x*Math.sin(rad)+y*Math.cos(rad));t.r=wrapAngle(g.tx.r+angle);}syncCtl();syncView();draw();});
 function endPtr(e){delete ptrs[e.pointerId];beginGesture();}
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);cv.addEventListener('lostpointercapture',endPtr);
-cv.addEventListener('wheel',function(e){e.preventDefault();var t=EDIT==='watch'?S.tx:VIEW,p=activePoint(cpt(e)),old=t.s;t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,old*Math.exp(-e.deltaY*.0015)));var k=t.s/old;t.x=p.x+(t.x-p.x)*k;t.y=p.y+(t.y-p.y)*k;syncCtl();syncView();draw();},{passive:false});
+cv.addEventListener('wheel',function(e){e.preventDefault();var t=EDIT==='watch'?S.tx:VIEW,p=activePoint(cpt(e)),old=t.s;t.s=Math.min(EDIT==='watch'?2.5:2.5,Math.max(EDIT==='watch'?.25:.75,old*Math.exp(-e.deltaY*.0015)));var k=t.s/old;t.x=p.x+(t.x-p.x)*k;t.y=p.y+(t.y-p.y)*k;syncCtl();syncView();draw();},{passive:false});
 function syncView(){$('#sceneScale').value=Math.round(VIEW.s*100);$('#sceneScaleOut').textContent=VIEW.s.toFixed(1)+'×';$('#sceneRot').value=Math.round(VIEW.r);$('#sceneRotOut').textContent=Math.round(VIEW.r)+'°';}
 function resetView(){VIEW={x:CW/2,y:CH/2,s:1,r:0};syncView();}
-function editMode(mode){EDIT=mode;ptrs={};gesture=null;['Watch','Scene'].forEach(function(n){var b=$('#mode'+n),on=mode===(n==='Watch'?'watch':'scene');b.setAttribute('aria-pressed',on);b.classList.toggle('btn-primary',on);});}
+function editMode(mode){EDIT=mode;if(mode==='watch')resetView();PLACE=false;$('#placeWrist').setAttribute('aria-pressed','false');$('#watchControls').hidden=mode!=='watch';$('#sceneControls').hidden=mode!=='scene';$('#editHint').textContent=mode==='watch'?'Фото зафиксировано. Двигайте только часы; двумя пальцами меняйте их размер и угол.':'Рука и часы двигаются вместе. Для подгонки вернитесь к шагу 1.';ptrs={};gesture=null;['Watch','Scene'].forEach(function(n){var b=$('#mode'+n),on=mode===(n==='Watch'?'watch':'scene');b.setAttribute('aria-pressed',on);b.classList.toggle('btn-primary',on);});draw();}
 $('#modeWatch').onclick=function(){editMode('watch');};$('#modeScene').onclick=function(){editMode('scene');};
 $('#sceneScale').oninput=function(){VIEW.s=this.value/100;syncView();draw();};$('#sceneRot').oninput=function(){VIEW.r=+this.value;syncView();draw();};$('#resetScene').onclick=function(){resetView();draw();};
 $('#toggleWatch').onclick=function(){WATCH_VISIBLE=!WATCH_VISIBLE;this.setAttribute('aria-pressed',!WATCH_VISIBLE);this.textContent=WATCH_VISIBLE?'Скрыть часы':'Показать часы';draw();};
+
+
+var PLACE=false;
+$('#placeWrist').onclick=function(){editMode('watch');PLACE=true;this.setAttribute('aria-pressed','true');$('#editHint').textContent='Нажмите на фото там, где должен быть центр циферблата.';};
+document.querySelectorAll('[data-nudge]').forEach(function(b){b.onclick=function(){var d=b.dataset.nudge.split(',').map(Number);S.tx.x+=d[0];S.tx.y+=d[1];draw();};});
+document.querySelectorAll('[data-angle]').forEach(function(b){b.onclick=function(){S.tx.r=wrapAngle(S.tx.r+Number(b.dataset.angle));draw();};});
+function scenePoint(p){var a=VIEW.r*Math.PI/180,x=p.x-CW/2,y=p.y-CH/2;return {x:VIEW.x+VIEW.s*(x*Math.cos(a)-y*Math.sin(a)),y:VIEW.y+VIEW.s*(x*Math.sin(a)+y*Math.cos(a))};}
+function watchOffsets(){
+ var w=SW[S.pick],h=w&&w.cut.width?200*w.cut.height/w.cut.width:400,a=S.tx.r*Math.PI/180,k=Math.tan(FIT.slant*Math.PI/180),out=[];
+ [-1,1].forEach(function(x){[-1,1].forEach(function(y){var dx=(x*100*FIT.width/100+k*y*h/2*FIT.length/100)*S.tx.s,dy=y*h/2*FIT.length/100*S.tx.s;out.push({x:dx*Math.cos(a)-dy*Math.sin(a),y:dx*Math.sin(a)+dy*Math.cos(a)});});});return out;
+}
+function constrain(){
+ VIEW.s=Math.max(.75,Math.min(2.5,VIEW.s));S.tx.s=Math.max(.25,Math.min(2.5,S.tx.s));
+ if(!S.photo)return;
+ var k=Math.min(CW/S.photo.width,CH/S.photo.height),pw=S.photo.width*k,ph=S.photo.height*k;
+ if(EDIT==='watch'){
+  var o=watchOffsets(),ex=Math.max.apply(null,o.map(function(p){return Math.abs(p.x);})),ey=Math.max.apply(null,o.map(function(p){return Math.abs(p.y);}));
+  var fit=Math.min(1,(pw/2-12)/ex,(ph/2-12)/ey);if(fit<1){S.tx.s*=Math.max(.01,fit);o=watchOffsets();ex*=fit;ey*=fit;}
+  S.tx.x=Math.max((CW-pw)/2+ex,Math.min((CW+pw)/2-ex,S.tx.x));S.tx.y=Math.max((CH-ph)/2+ey,Math.min((CH+ph)/2-ey,S.tx.y));
+  var corners=o.map(function(p){return scenePoint({x:S.tx.x+p.x,y:S.tx.y+p.y});}),xs=corners.map(function(p){return p.x;}),ys=corners.map(function(p){return p.y;}),loX=Math.min.apply(null,xs),hiX=Math.max.apply(null,xs),loY=Math.min.apply(null,ys),hiY=Math.max.apply(null,ys);
+  var dx=loX<10?10-loX:hiX>CW-10?CW-10-hiX:0,dy=loY<10?10-loY:hiY>CH-10?CH-10-hiY:0;
+  if(dx||dy){var c=scenePoint(S.tx),p=localPoint({x:c.x+dx,y:c.y+dy});S.tx.x=p.x;S.tx.y=p.y;}
+ }else{
+  var c=scenePoint(S.tx);VIEW.x+=Math.max(80,Math.min(CW-80,c.x))-c.x;VIEW.y+=Math.max(80,Math.min(CH-80,c.y))-c.y;
+ }
+}
 
 /* Сохранение снимка */
 $('#btnSave').addEventListener('click',function(){
