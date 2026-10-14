@@ -198,14 +198,16 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 @media(max-width:720px){body{padding-inline:18px}.topbar{min-height:86px;margin-bottom:28px;gap:14px;padding-block:18px}.brand{font-size:.9rem}.site-nav{gap:3px;width:100%;justify-content:space-between}.site-nav a{font-size:.78rem;padding:9px 10px}.hero.narrow{grid-template-columns:1fr;gap:30px;padding-top:0}.hero h1{font-size:3.25rem}.hero-art{max-width:440px;width:100%;margin-inline:auto;padding-top:28px}.hero p.lead{font-size:.94rem}.feature-strip{gap:16px;padding-block:20px}.feature-strip strong{font-size:.8rem}.feature-strip p{font-size:.74rem}.cat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.cat-info{padding:12px;gap:10px}.cat-info .name{font-size:1.08rem}.cat-pic{padding:10px}.cat-info .row{gap:6px}.cat-info .btn{font-size:.85rem;padding-inline:8px}.ctl{grid-template-columns:76px 1fr 42px;gap:7px}.site-foot{flex-direction:column;gap:8px}.hero .cta-row .btn{max-width:none} }
 @media(max-width:360px){.cat-grid{grid-template-columns:1fr}.hero h1{font-size:2.7rem}.feature-strip{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover{transform:none}}
+
+.language-picker{display:inline-flex;gap:3px;align-items:center;direction:ltr}.language-picker button{background:transparent;border:1px solid var(--line);border-radius:5px;color:var(--muted);font:inherit;font-size:.75rem;min-height:40px;padding:7px 10px;cursor:pointer}.language-picker button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}[dir="rtl"] .opt{text-align:right;align-items:flex-start}[dir="rtl"] .cal li{border-left-width:1px;border-right-width:4px}[dir="rtl"] .ctl output{text-align:left}[dir="rtl"] .hero h1{font-family:var(--f-display);letter-spacing:-.015em}[dir="rtl"] .track{direction:ltr}[dir="rtl"] .brand{direction:ltr}[dir="rtl"] .badge{left:auto;right:10px}.cat-pic img{object-fit:contain}.form-note{padding:14px;border:1px solid var(--line);border-radius:8px;margin-bottom:20px;color:var(--muted);font-size:.85rem}body[data-embed="true"] .language-picker{display:none}
 </style>
-</head>
+<script src="locale.js?v=20261014b" defer></script></head>
 <body>
 
 <div class="wrap">
-  <header class="topbar">
+  <header class="topbar"><div class="language-picker" role="group" aria-label="Language"><button type="button" data-lang="ru">RU</button><button type="button" data-lang="en">EN</button><button type="button" data-lang="he">HE</button></div>
     <a class="brand" href="./" style="text-decoration:none">WATCH EDIT</a>
-    <span><button class="link" id="btnOwner" type="button">Вход владельца</button> &nbsp; <a class="toplink" href="index.html">Подбор часов →</a></span>
+    <a class="toplink" href="./">Главная</a>
   </header>
 
   <main>
@@ -229,7 +231,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
     <section id="v-edit" hidden>
       <button class="link back" id="btnCutBack" type="button">← К каталогу</button>
       <h2 class="cut-title">Новые часы</h2>
-      <p class="hint">Сфотографируйте часы на любом фоне. Обведите их рамкой, сайт уберёт фон для примерки, а фото целиком останется в карточке.</p>
+      <p class="hint">Белый фон удаляется автоматически. Проверьте результат перед сохранением. На сложном фоне можно уточнить рамку и допуск.</p>
       <div class="cut-grid">
         <div><p class="mono">1. ОБВЕДИТЕ ЧАСЫ</p><canvas id="cc" width="300" height="300" aria-label="Фото часов с рамкой"></canvas></div>
         <div><p class="mono">2. РЕЗУЛЬТАТ</p><canvas id="cp" class="chk" width="800" height="800" aria-label="Вырезанные часы"></canvas></div>
@@ -257,22 +259,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
       </div>
     </section>
 
-    <section id="v-owner" hidden>
-      <button class="link back" id="btnOwnBack" type="button">← К каталогу</button>
-      <h2 class="cut-title">Вход владельца</h2><button class="btn" id="btnLogout" type="button" hidden>Выйти из аккаунта владельца</button>
-      <p class="hint">Добавлять и удалять часы может только владелец сайта. Для этого нужен личный токен GitHub. Он хранится в текущей сессии браузера и никуда не отправляется, кроме GitHub.</p>
-      <ol class="hint" style="padding-left:1.2em;line-height:1.6">
-        <li>Откройте <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">создание токена</a>.</li>
-        <li>Название: watch. Срок: на ваше усмотрение (например, 1 год).</li>
-        <li>Repository access: Only select repositories → выберите watch.</li>
-        <li>Permissions → Repository permissions → Contents: Read and write.</li>
-        <li>Нажмите Generate token, скопируйте его и вставьте ниже.</li>
-      </ol>
-      <div class="fld"><label for="inToken">Токен</label><input id="inToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-      <div class="row"><button class="btn btn-primary" id="btnOwnSave" type="button">Войти</button></div>
-    </section>
-
-    <section id="v-try" hidden>
+<section id="v-try" hidden>
       <button class="link back" id="btnToCat" type="button">← К каталогу</button>
       <div class="try-grid">
         <div class="stage">
@@ -314,7 +301,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 var $=function(s){return document.querySelector(s);};
 function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 var S={view:'cat',filter:'all',photo:null,pick:null,tx:{x:450,y:690,s:1.5,r:0}};
-var V={cat:$('#v-cat'),edit:$('#v-edit'),tryon:$('#v-try'),owner:$('#v-owner')};
+var V={cat:$('#v-cat'),edit:$('#v-edit'),tryon:$('#v-try')};
 var GEN_N={m:'Мужские',f:'Женские',u:'Унисекс'};
 var STYLE_N={dress:'классика',casual:'повседневные',sport:'спорт',minimal:'минимализм',vintage:'ретро',smart:'умные часы'};
 function show(name){
@@ -346,8 +333,6 @@ var GH={owner:'gleb1979-ops',repo:'watch',token:''};
 (function(){
   var m=/^([^.]+)\.github\.io$/i.exec(location.hostname);
   if(m){ GH.owner=m[1]; var p=location.pathname.split('/')[1]; if(p&&!/\.html?$/i.test(p)) GH.repo=p; }
-  var q=/[?&]repo=([^\/&]+)\/([^&]+)/.exec(location.search); if(q){ GH.owner=q[1]; GH.repo=q[2]; }
-  try{ GH.token=sessionStorage.getItem('watch_token')||''; localStorage.removeItem('watch_token'); }catch(e){}
 })();
 function rawUrl(path){ return 'https://raw.githubusercontent.com/'+GH.owner+'/'+GH.repo+'/HEAD/'+path; }
 function api(path,opt){
@@ -395,7 +380,7 @@ function ghBackend(){
     watch:function(cb,err){ if(subs.indexOf(cb)<0) subs.push(cb); emit().catch(function(e){ if(err) err(e); }); },
     add:function(meta,cutB,photoB){
       var id='w'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
-      var cp='img/'+id+'-cut.png', pp='img/'+id+'-photo.jpg';
+      var cp='img/'+id+'-cut.png', pp='img/'+id+'-photo.png';
       return Promise.all([b64Blob(cutB),b64Blob(photoB)]).then(function(b){
         return putFile(cp,b[0],'Add watch '+id).then(function(){ return putFile(pp,b[1],'Add photo '+id); });
       }).then(function(){
@@ -417,7 +402,7 @@ function toW(it){
   if(!w||w.url!==it.cutUrl){
     var im=new Image(); im.crossOrigin='anonymous'; im.onload=function(){
       // Repair opaque white backgrounds left by the previous catalog exporter.
-      try{var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;var x=c.getContext('2d');x.drawImage(im,0,0);var px=x.getImageData(0,0,c.width,c.height),d=px.data;var corners=[0,(c.width-1)*4,(c.height-1)*c.width*4,(c.width*c.height-1)*4];if(corners.every(function(i){return d[i]>235&&d[i+1]>235&&d[i+2]>235&&d[i+3]===255;})){cutPixels(d,c.width,c.height,35,false);x.putImageData(px,0,0);SW[it.id].cut=c;}}catch(e){}
+      try{var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;var x=c.getContext('2d');x.drawImage(im,0,0);var px=x.getImageData(0,0,c.width,c.height),d=px.data;var corners=[0,(c.width-1)*4,(c.height-1)*c.width*4,(c.width*c.height-1)*4];if(corners.every(function(i){return d[i]>235&&d[i+1]>235&&d[i+2]>235&&d[i+3]===255;})){cutPixels(d,c.width,c.height,35,false);x.putImageData(px,0,0);SW[it.id].cut=c;it.displayUrl=c.toDataURL('image/png');document.querySelectorAll('[data-image-id]').forEach(function(el){if(el.dataset.imageId===it.id)el.src=it.displayUrl;});}}catch(e){}
       draw();
     }; im.onerror=function(){ if(it.cutPath&&im.src.indexOf('raw.githubusercontent')<0) im.src=rawUrl(it.cutPath); }; im.src=it.cutUrl;
     w=SW[it.id]={id:it.id,cut:im,url:it.cutUrl};
@@ -430,8 +415,8 @@ function onItems(items){
   if(S.view==='tryon') renderPicker();
 }
 function initStore(){
-  Store.mode='gh'; Store.canWrite=!!GH.token; Store.be=ghBackend(); Store.ready=false;
-  renderOwner(); renderCatalog();
+  Store.mode='gh'; Store.canWrite=false; Store.be=ghBackend(); Store.ready=false;
+  renderCatalog();
   Store.be.watch(onItems,function(){ Store.ready=true; Store.error=true; renderCatalog(); });
 }
 function saveErr(e){
@@ -441,26 +426,7 @@ function saveErr(e){
   if(s===422) return 'Файл с таким именем уже есть. Попробуйте ещё раз.';
   return 'Не удалось сохранить. Проверьте интернет и попробуйте ещё раз.';
 }
-/* ---------- Вход владельца ---------- */
-function renderOwner(){
-  $('#btnLogout').hidden=!GH.token; var b=$('#btnOwner'); b.textContent=GH.token?'Владелец · выйти':'Вход владельца';
-}
-$('#btnOwner').addEventListener('click',function(){
-  if(GH.token){ GH.token=''; try{ sessionStorage.removeItem('watch_token'); localStorage.removeItem('watch_token'); }catch(e){} Store.canWrite=false; renderOwner(); renderCatalog(); Store.be.watch&&reloadList(); toast('Вы вышли.'); return; }
-  show('owner');
-});
-function reloadList(){ Store.error=false; Store.ready=false; renderCatalog(); Store.be.watch(onItems,function(){ Store.ready=true; Store.error=true; renderCatalog(); }); }
-$('#btnLogout').addEventListener('click',function(){GH.token='';try{sessionStorage.removeItem('watch_token');localStorage.removeItem('watch_token');}catch(e){}Store.canWrite=false;renderOwner();show('cat');reloadList();toast('Вы вышли.');});
-$('#btnOwnBack').addEventListener('click',function(){ show('cat'); });
-$('#btnOwnSave').addEventListener('click',function(){
-  var t=($('#inToken').value||'').trim(); if(!t){ toast('Вставьте токен.'); return; }
-  var btn=this; btn.disabled=true; var old=GH.token; GH.token=t;
-  api('').then(function(repo){ if(!repo.permissions||!repo.permissions.push) throw new Error('Нет права записи'); return api('/contents/watches.json'); }).then(function(){
-    try{ sessionStorage.setItem('watch_token',t); }catch(e){ toast('Браузер не даёт сохранить токен. Вход действует до закрытия страницы.'); }
-    $('#inToken').value=''; Store.canWrite=true; renderOwner(); show('cat'); renderCatalog(); reloadList(); toast('Вы вошли как владелец.');
-  }).catch(function(){ GH.token=old; toast('Токен не подошёл. Проверьте, что он выдан на репозиторий '+GH.repo+'.'); }).then(function(){ btn.disabled=false; });
-});
-
+function reloadList(){Store.error=false;Store.ready=false;renderCatalog();Store.be.watch(onItems,function(){Store.ready=true;Store.error=true;renderCatalog();});}
 /* ---------- Каталог ---------- */
 function safeLink(u){ return /^https?:\/\//i.test(u)?u:''; }
 function renderCatalog(){
@@ -479,7 +445,7 @@ function renderCatalog(){
   }
   el.innerHTML=list.map(function(it){
     var lk=safeLink(it.link);
-    return '<article class="cat-card"><div class="cat-pic"><img alt="'+esc(it.name)+'" src="'+esc(it.photoUrl)+'" data-p="'+esc(it.photoPath||'')+'" loading="lazy" decoding="async"></div><div class="cat-info">'+
+    return '<article class="cat-card"><div class="cat-pic"><img alt="'+esc(it.name)+'" src="'+esc(it.displayUrl||it.cutUrl)+'" data-image-id="'+esc(it.id)+'" data-p="'+esc(it.cutPath||'')+'" loading="lazy" decoding="async"></div><div class="cat-info">'+
       '<h3 class="name">'+esc(it.name)+'</h3>'+
       '<div class="cat-meta">'+(it.brand?'<span>'+esc(it.brand)+'</span>':'')+'<span>'+esc(GEN_N[it.gender])+'</span>'+(it.style&&STYLE_N[it.style]?'<span>'+esc(STYLE_N[it.style])+'</span>':'')+'</div>'+
       (it.price?'<p class="price">'+esc(it.price)+'</p>':'')+
@@ -493,7 +459,7 @@ $('#catBody').addEventListener('click',function(e){
   var b=e.target.closest('button'); if(!b) return; if(b.id==='retryCatalog'){reloadList();return;}
   var it=Store.items.filter(function(x){ return x.id===b.dataset.id; })[0]; if(!it) return;
   if(b.dataset.k==='try'){ openTry(it.id); return; }
-  if(b.dataset.k==='del'){
+  if(b.dataset.k==='del'&&Store.canWrite){
     if(b.dataset.armed!=='1'){
       b.dataset.armed='1'; b.textContent='Точно удалить?';
       setTimeout(function(){ b.dataset.armed='0'; b.textContent='Удалить'; },3000);
@@ -594,7 +560,7 @@ function openCut(file){
   if(!file) return;
   var im=new Image();
   im.onload=function(){
-    CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null;
+    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null;
     ['inName','inBrand','inPrice','inLink'].forEach(function(id){ $('#'+id).value=''; });
     $('#inName').value='Часы '+(Store.items.length+1);
     show('edit'); cutCanvasSize(); drawCut(); runCut();
@@ -615,7 +581,7 @@ $('#rngTol').addEventListener('change',runCut);
 $('#chkRound').addEventListener('change',function(e){ CUT.round=e.target.checked; runCut(); });
 $('#btnCutAll').addEventListener('click',function(){ if(!CUT.img) return; CUT.rect={x:0,y:0,w:CUT.img.width,h:CUT.img.height}; drawCut(); runCut(); });
 $('#btnCutBack').addEventListener('click',function(){ show('cat'); renderCatalog(); });
-$('#btnCatAdd').addEventListener('click',function(){ $('#fileCut').click(); });
+$('#btnCatAdd').addEventListener('click',function(){ if(Store.canWrite)$('#fileCut').click(); });
 $('#fileCut').addEventListener('change',function(e){ openCut(e.target.files[0]); e.target.value=''; });
 $('#btnCutSave').addEventListener('click',function(){
   if(!CUT.out||!Store.be||!Store.canWrite) return;
@@ -623,8 +589,8 @@ $('#btnCutSave').addEventListener('click',function(){
   if(link&&!safeLink(link)){ toast('Ссылка должна начинаться с http:// или https://'); return; }
   var meta={name:($('#inName').value||'').trim().slice(0,60)||'Часы',brand:($('#inBrand').value||'').trim().slice(0,40),price:($('#inPrice').value||'').trim().slice(0,30),gender:$('#selGender').value,style:$('#selStyle').value,link:link};
   btn.disabled=true; btn.textContent='Сохраняю…';
-  var cutC=scaled(CUT.out,CUT.out.width,CUT.out.height,1600,true), phC=scaled(CUT.img,CUT.img.width,CUT.img.height,2400);
-  Promise.all([blobOf(cutC,'image/png'),blobOf(phC,'image/jpeg',.95)])
+  var cutC=scaled(CUT.out,CUT.out.width,CUT.out.height,1600,true), phC=scaled(CUT.out,CUT.out.width,CUT.out.height,1600,true);
+  Promise.all([blobOf(cutC,'image/png'),blobOf(phC,'image/png')])
     .then(function(bs){ return Store.be.add(meta,bs[0],bs[1]); })
     .then(function(){ toast('Часы сохранены в каталог.'); show('cat'); renderCatalog(); })
     .catch(function(e){ toast(saveErr(e)); })
@@ -786,7 +752,7 @@ if(window.parent!==window){
  document.body.dataset.embed='true'; document.body.style.minHeight='0'; document.documentElement.style.minHeight='0';
  function notifyHeight(){parent.postMessage({type:'watch-height',height:document.querySelector('.wrap').getBoundingClientRect().height},new URL(document.baseURI).origin);}
  new ResizeObserver(notifyHeight).observe(document.body);
- window.addEventListener('message',function(e){if(e.source!==parent||e.origin!==new URL(document.baseURI).origin)return; if(e.data.type==='watch-owner')show('owner'); if(e.data.type==='watch-catalog'){show('cat');reloadList();} if(e.data.type==='watch-stop'){stopLive();}});
+ window.addEventListener('message',function(e){if(e.source!==parent||e.origin!==new URL(document.baseURI).origin)return; if(e.data.type==='watch-catalog'){show('cat');reloadList();} if(e.data.type==='watch-stop'){stopLive();}});
  parent.postMessage({type:'watch-ready'},new URL(document.baseURI).origin);
 }
 
@@ -795,4 +761,5 @@ initStore();
 </script>
 </body>
 </html>
+
 
