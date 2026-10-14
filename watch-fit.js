@@ -2,8 +2,9 @@
 (function(){'use strict';
 window.WatchFit={create:function(o){
  var serial=0,anchor=null,marks=null;
+ function busy(value){o.button.disabled=value;o.button.setAttribute&&o.button.setAttribute('aria-busy',String(value));var lang=document.documentElement&&document.documentElement.lang||'ru';o.button.textContent=value?(lang==='he'?'מחפשים את פרק כף היד…':lang==='en'?'Finding wrist…':'Ищем запястье…'):(lang==='he'?'התאמה אוטומטית':lang==='en'?'Automatic fit':'Автоматическая посадка');}
  function status(s){o.status.textContent=s;}
- function cancel(){serial++;o.button.disabled=false;}
+ function cancel(){serial++;busy(false);}
  function dimensions(){var im=o.photo(),k=Math.min(o.width/im.width,o.height/im.height);return {k:k,x:(o.width-im.width*k)/2,y:(o.height-im.height*k)/2};}
  function place(g){
   anchor=g;var tx=o.tx(),img=o.watch();tx.x=g.x;tx.y=g.y;tx.r=g.angle;
@@ -15,18 +16,18 @@ window.WatchFit={create:function(o){
  }
  async function detect(){
   var photo=o.photo();if(!photo){status('Сначала загрузите фото руки.');return;}
-  cancel();marks=null;anchor=null;var id=serial;o.button.disabled=true;
+  cancel();marks=null;anchor=null;var id=serial;busy(true);
   status('Определяем запястье… При первом запуске загружается модуль распознавания.');
   var timer;
   try{
    if(!window.WristDetection)throw Error('module');
    var g=await Promise.race([WristDetection.detect(photo),new Promise(function(_,reject){timer=setTimeout(function(){reject(Error('timeout'));},20000);})]);
    if(id!==serial||photo!==o.photo())return;
-   if(!g){status('Не удалось уверенно определить запястье. Нажмите «Указать запястье» и отметьте два его края.');return;}
+   if(!g){status('Не удалось уверенно определить запястье. Для автоматической посадки снимите руку целиком, включая пальцы. Или нажмите «Указать запястье» и отметьте два края.');return;}
    var d=dimensions();place({x:d.x+g.x*d.k,y:d.y+g.y*d.k,width:g.width*d.k,angle:g.angle});
    status('Запястье найдено. Положение, угол и размер подогнаны автоматически. При необходимости уточните пальцами.');
   }catch(e){if(id===serial)status('Распознавание недоступно. Нажмите «Указать запястье»: два касания подгонят размер и угол.');}
-  finally{clearTimeout(timer);if(id===serial)o.button.disabled=false;}
+  finally{clearTimeout(timer);if(id===serial)busy(false);}
  }
  document.querySelectorAll('input[type=range]').forEach(function(el){el.addEventListener('input',cancel);});
  o.button.onclick=detect;
@@ -42,3 +43,4 @@ window.WatchFit={create:function(o){
   }};
 }};
 })();
+
