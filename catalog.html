@@ -207,10 +207,10 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 @media(min-width:900px){.try-grid{grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);align-items:start}.stage{position:sticky;top:12px}}
 @media(max-width:719px){.stage{width:100%;max-width:none}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
 .watch-switch{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:end}.watch-switch .btn{font-size:.8rem;padding-inline:8px;min-height:44px}.watch-switch .fld{font-size:.8rem}.watch-switch select{min-height:44px;max-width:100%}</style>
-<script src="watch-fit.js?v=20261014t"></script>
-<script src="wrist.js?v=20261014t" defer></script>
-<script src="locale.js?v=20261014t" defer></script>
-<script src="watch-real.js?v=20261014q" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014t"><script src="fitting-workspace.js?v=20261014t" defer></script></head>
+<script src="watch-fit.js?v=20261014u"></script>
+<script src="wrist.js?v=20261014u" defer></script>
+<script src="locale.js?v=20261014u" defer></script>
+<script src="watch-real.js?v=20261014u" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014u"><script src="fitting-workspace.js?v=20261014u" defer></script></head>
 <body>
 
 <div class="wrap">
@@ -278,8 +278,8 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
         </div>
         <div class="panel">
           <div>
-            <h2 id="tryName"></h2>
-            <p class="mono" id="tryMeta"></p>
+            <h2 id="tryName" data-no-translate></h2>
+            <p class="mono" id="tryMeta" data-no-translate></p>
           </div>
           <div class="watch-switch"><button class="btn" id="previousWatch" type="button">Предыдущие</button><label class="fld">Выбрать часы<select id="chooseWatch" aria-label="Выбрать часы"></select></label><button class="btn" id="nextWatch" type="button">Следующие</button></div><p class="mono" id="watchPosition" aria-live="polite"></p><div class="picker" id="picker" role="listbox" aria-label="Часы из каталога"></div>
           <div class="photo-actions">
@@ -467,10 +467,10 @@ function renderCatalog(){
   }
   el.innerHTML=list.map(function(it){
     var lk=safeLink(it.link);
-    return '<article class="cat-card"><div class="cat-pic"><img alt="'+esc(it.name)+'" src="'+esc(it.displayUrl||it.cutUrl)+'" data-image-id="'+esc(it.id)+'" data-p="'+esc(it.cutPath||'')+'" loading="lazy" decoding="async"></div><div class="cat-info">'+
-      '<h3 class="name">'+esc(it.name)+'</h3>'+
-      '<div class="cat-meta">'+(it.brand?'<span>'+esc(it.brand)+'</span>':'')+'<span>'+esc(GEN_N[it.gender])+'</span>'+(it.style&&STYLE_N[it.style]?'<span>'+esc(STYLE_N[it.style])+'</span>':'')+'</div>'+
-      (it.price?'<p class="price">'+esc(it.price)+'</p>':'')+
+    return '<article class="cat-card"><div class="cat-pic"><img data-no-translate alt="'+esc(it.name)+'" src="'+esc(it.displayUrl||it.cutUrl)+'" data-image-id="'+esc(it.id)+'" data-p="'+esc(it.cutPath||'')+'" loading="lazy" decoding="async"></div><div class="cat-info">'+
+      '<h3 class="name" data-no-translate>'+esc(it.name)+'</h3>'+
+      '<div class="cat-meta">'+(it.brand?'<span data-no-translate>'+esc(it.brand)+'</span>':'')+'<span>'+esc(GEN_N[it.gender])+'</span>'+(it.style&&STYLE_N[it.style]?'<span>'+esc(STYLE_N[it.style])+'</span>':'')+'</div>'+
+      (it.price?'<p class="price" data-no-translate>'+esc(it.price)+'</p>':'')+
       (lk?'<a class="cat-link" href="'+esc(lk)+'" target="_blank" rel="noopener">Страница товара</a>':'')+
       '<div class="row"><button class="btn btn-primary" type="button" data-k="try" data-id="'+esc(it.id)+'">Примерить</button>'+(Store.canWrite?'<button class="btn" type="button" data-k="del" data-id="'+esc(it.id)+'">Удалить</button>':'')+'</div></div></article>';
   }).join('');
@@ -691,11 +691,11 @@ function syncCtl(){
 }
 function renderPicker(){
   var h=Store.items.map(function(it){
-    return '<button type="button" class="pick" role="option" data-id="'+esc(it.id)+'" aria-selected="'+(it.id===S.pick)+'"><img alt="" src="'+esc(it.cutUrl)+'"><span>'+esc(it.name)+'</span></button>';
+    return '<button type="button" class="pick" role="option" data-id="'+esc(it.id)+'" aria-selected="'+(it.id===S.pick)+'"><img alt="" src="'+esc(it.cutUrl)+'"><span data-no-translate>'+esc(it.name)+'</span></button>';
   }).join('');
   $('#picker').innerHTML=h||'<p class="picker-empty">В каталоге пока нет часов.</p>';
 }
-function syncWatchNavigation(){var items=Store.items;$('#chooseWatch').innerHTML=items.map(function(it){return '<option value="'+esc(it.id)+'">'+esc([it.brand,it.name].filter(Boolean).join(' · '))+'</option>';}).join('');$('#chooseWatch').value=S.pick||'';$('#chooseWatch').disabled=!items.length;$('#previousWatch').disabled=items.length<2;$('#nextWatch').disabled=items.length<2;var index=items.findIndex(function(it){return it.id===S.pick;});$('#watchPosition').textContent=index>=0?(index+1)+' / '+items.length:'';}
+function syncWatchNavigation(){var items=Store.items;$('#chooseWatch').innerHTML=items.map(function(it){return '<option data-no-translate value="'+esc(it.id)+'">'+esc([it.brand,it.name].filter(Boolean).join(' · '))+'</option>';}).join('');$('#chooseWatch').value=S.pick||'';$('#chooseWatch').disabled=!items.length;$('#previousWatch').disabled=items.length<2;$('#nextWatch').disabled=items.length<2;var index=items.findIndex(function(it){return it.id===S.pick;});$('#watchPosition').textContent=index>=0?(index+1)+' / '+items.length:'';}
 function switchWatch(step){var items=Store.items;if(!items.length)return;var index=items.findIndex(function(it){return it.id===S.pick;});var next=index<0?0:(index+step+items.length)%items.length;setPick(items[next].id);}
 $('#previousWatch').onclick=function(){switchWatch(-1);};$('#nextWatch').onclick=function(){switchWatch(1);};$('#chooseWatch').onchange=function(){setPick(this.value);};
 function setPick(id){
@@ -786,6 +786,7 @@ initStore();
 </script>
 </body>
 </html>
+
 
 
 
