@@ -209,8 +209,8 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 </style>
 <script src="watch-fit.js?v=20261014f"></script>
 <script src="wrist.js?v=20261014a" defer></script>
-<script src="locale.js?v=20261014i" defer></script>
-<script src="watch-real.js?v=20261015-real2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014g"><script src="fitting-workspace.js?v=20261014g" defer></script></head>
+<script src="locale.js?v=20261014l" defer></script>
+<script src="watch-real.js?v=20261015-real2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014g"><script src="fitting-workspace.js?v=20261014g" defer></script><script src="watch-info-ocr.js?v=20261014l" defer></script></head>
 <body>
 
 <div class="wrap">
@@ -249,7 +249,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
         <div class="ctl"><label for="rngTol">Допуск фона</label><input id="rngTol" type="range" min="10" max="140" value="45"><output id="outTol">45</output></div>
         <label class="chk-row"><input id="chkRound" type="checkbox"> Оставить только круг (если фон пёстрый)</label>
         <p class="fit" id="cutNote"></p>
-        <div class="form-grid"><label class="fld" id="extraRole" hidden>Ракурс<select id="selViewRole"><option value="angle">Под углом</option><option value="side">Сбоку</option><option value="front">Спереди</option></select></label>
+        <div class="form-grid"><button class="btn" id="readWatchInfo" type="button">Заполнить из скриншота</button><input id="fileWatchInfo" type="file" accept="image/*" hidden><p class="hint" id="watchInfoStatus" role="status" aria-live="polite">Добавьте скриншот магазина с брендом, моделью и ценой.</p><label class="fld" id="extraRole" hidden>Ракурс<select id="selViewRole"><option value="angle">Под углом</option><option value="side">Сбоку</option><option value="front">Спереди</option></select></label>
           <div class="fld"><label for="inName">Название</label><input id="inName" type="text" maxlength="60" placeholder="Например, Seiko 5 Sports"></div>
           <div class="fld-row">
             <div class="fld"><label for="inBrand">Бренд</label><input id="inBrand" type="text" maxlength="40"></div>
