@@ -32,7 +32,7 @@ function prepare(img){
       var edge=false;
       for(var oy=-2;oy<=2&&!edge;oy++)for(var ox=-2;ox<=2;ox++){var X=xx+ox,Y=yy+oy;if(X<0||Y<0||X>=w||Y>=h||a[Y*w+X]<10){edge=true;break;}}
       near[i]=edge?1:0;
-      if(edge){var r=d[i*4],g=d[i*4+1],b=d[i*4+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);if(mn>205&&mx-mn<28)a[i]=Math.round(a[i]*.15);}
+      if(edge){var r=d[i*4],g=d[i*4+1],b=d[i*4+2],mx=Math.max(r,g,b),mn=Math.min(r,g,b);if(a[i]<230&&mn>225&&mx-mn<20)a[i]=Math.round(a[i]*.55);}
     }
     // 2. Anti-alias: 3x3 average of alpha on the edge band only.
     var out=new Uint8ClampedArray(a);
@@ -82,6 +82,7 @@ function draw(ctx,img,opt){
   var curve=Math.max(0,Math.min(100,opt.curve==null?40:opt.curve))/100;
   var shadow=Math.max(0,Math.min(1,opt.shadow==null?.25:opt.shadow));
   var amb=opt.ambient===false?null:ambient(ctx,cw,ch);
+  if(amb)shadow=Math.min(1,shadow*Math.max(.8,Math.min(1.2,.85+amb.contrast*.003))); 
   var m=ctx.getTransform(),sc=Math.max(.2,Math.hypot(m.a,m.b));
 
   // Projection: case stays flat; bracelet beyond it wraps around a cylinder.
@@ -137,10 +138,23 @@ function draw(ctx,img,opt){
     fe.addColorStop(0,'rgba(0,0,0,.7)');fe.addColorStop(f1,'rgba(0,0,0,0)');fe.addColorStop(f2,'rgba(0,0,0,0)');fe.addColorStop(1,'rgba(0,0,0,.7)');
     wx.fillStyle=fe;wx.fillRect(0,0,W,H);
   }
+  // Thin light-catching rim: subtract an eroded alpha mask from the silhouette.
+  if(!work.rim)work.rim=canvas(1,1);if(!work.inner)work.inner=canvas(1,1);
+  var rim=work.rim,inner=work.inner;
+  if(rim.width!==W||rim.height!==H){rim.width=W;rim.height=H;inner.width=W;inner.height=H;}
+  var rx=rim.getContext('2d'),ix=inner.getContext('2d');
+  rx.globalCompositeOperation='source-over';rx.clearRect(0,0,W,H);rx.drawImage(work,0,0);
+  ix.globalCompositeOperation='source-over';ix.clearRect(0,0,W,H);ix.drawImage(work,0,0);
+  ix.globalCompositeOperation='destination-in';
+  [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(d){ix.drawImage(work,d[0],d[1]);});
+  rx.globalCompositeOperation='destination-out';rx.drawImage(inner,0,0);
+  rx.globalCompositeOperation='source-in';var rimLight=rx.createLinearGradient(0,0,W,H);
+  rimLight.addColorStop(0,'rgba(255,255,255,.24)');rimLight.addColorStop(.55,'rgba(255,255,255,.04)');rimLight.addColorStop(1,'rgba(0,0,0,.10)');
+  rx.fillStyle=rimLight;rx.fillRect(0,0,W,H);wx.globalCompositeOperation='source-over';wx.drawImage(rim,0,0);
   // Faint glass reflection over the case.
   wx.globalCompositeOperation='source-atop';
   var cy0=(top-mid-pT.y)*k,cy1=(bot-mid-pT.y)*k,gl=wx.createLinearGradient(W*.15,cy0,W*.75,cy1);
-  gl.addColorStop(0,'rgba(255,255,255,0)');gl.addColorStop(.32,'rgba(255,255,255,.10)');gl.addColorStop(.40,'rgba(255,255,255,.02)');gl.addColorStop(.62,'rgba(255,255,255,0)');
+  gl.addColorStop(0,'rgba(255,255,255,0)');gl.addColorStop(.32,'rgba(255,255,255,.14)');gl.addColorStop(.40,'rgba(255,255,255,.035)');gl.addColorStop(.62,'rgba(255,255,255,0)');
   wx.fillStyle=gl;wx.fillRect(0,cy0,W,cy1-cy0);
   wx.globalCompositeOperation='source-over';
 
@@ -179,4 +193,5 @@ function draw(ctx,img,opt){
 
 window.WatchReal={prepare:prepare,draw:draw,ambient:ambient};window.dispatchEvent(new Event('watch-render-ready'));
 })();
+
 
