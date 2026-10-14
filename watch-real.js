@@ -135,6 +135,18 @@ function draw(ctx,img,opt){
     wx.fillStyle='rgb('+Math.round(amb.r)+','+Math.round(amb.g)+','+Math.round(amb.b)+')';wx.fillRect(0,0,W,H);
     wx.globalAlpha=1;wx.globalCompositeOperation='destination-in';wx.drawImage(mk,0,0);
   }
+  // A broad reflection across the bracelet, clipped to its existing silhouette.
+  // Ambient contrast controls strength; original metal colour and texture stay visible.
+  wx.globalCompositeOperation='source-atop';wx.globalAlpha=1;
+  var reflection=amb?Math.max(.035,Math.min(.11,.035+amb.contrast*.0005)):.065;
+  var metal=wx.createLinearGradient(0,0,W,0);
+  metal.addColorStop(0,'rgba(255,255,255,0)');
+  metal.addColorStop(.25,'rgba(255,255,255,0)');
+  metal.addColorStop(.38,'rgba(255,255,255,'+reflection+')');
+  metal.addColorStop(.52,'rgba(255,255,255,0)');
+  metal.addColorStop(1,'rgba(255,255,255,0)');
+  wx.fillStyle=metal;wx.fillRect(0,0,W,Math.max(0,(top-mid-pT.y)*k));
+  var bandBottom=Math.max(0,(bot-mid-pT.y)*k);wx.fillRect(0,bandBottom,W,H-bandBottom);
   // Cut ends of the bracelet fade out where it disappears around the wrist.
   if(top>P.h*.04||bot<P.h*.96){
     wx.globalCompositeOperation='destination-out';
@@ -205,5 +217,6 @@ function draw(ctx,img,opt){
 
 window.WatchReal={prepare:prepare,draw:draw,ambient:ambient};window.dispatchEvent(new Event('watch-render-ready'));
 })();
+
 
 
