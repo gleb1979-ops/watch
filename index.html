@@ -188,6 +188,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 .stage.expanded canvas{width:auto;max-width:100%;height:100%;max-height:100svh;object-fit:contain}
 .stage-expand{position:absolute;right:12px;bottom:12px;z-index:2;background:#101213dd;color:#fff;border:1px solid #ffffff55;border-radius:8px;min-height:44px;padding:8px 14px;cursor:pointer;font:inherit;line-height:1.3}
 </style>
+<script src="wrist.js?v=20261014a" defer></script>
 <script src="locale.js?v=20261014d" defer></script></head>
 <body>
 
@@ -253,7 +254,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 <div class="ctl"><label for="sceneRot">Поворот фото</label><input id="sceneRot" type="range" min="-180" max="180" value="0"><output id="sceneRotOut">0°</output></div>
 <button class="btn" id="resetScene" type="button">Сбросить фото</button>
 <p class="hint">Выберите режим: один палец перемещает, два — приближают и поворачивают. В режиме «Рука + часы» часы остаются на запястье.</p>
-<button class="btn btn-primary" id="autoFit" type="button">Автоматическая посадка</button><p class="hint" id="autoFitStatus" aria-live="polite">Загрузите фото руки — свет и тень настроятся автоматически. Затем переместите часы на запястье.</p><details class="photo-fit"><summary>Точная настройка</summary>
+<button class="btn btn-primary" id="autoFit" type="button">Автоматическая посадка</button><button class="btn" id="markWrist" type="button">Указать запястье</button><p class="hint" id="autoFitStatus" aria-live="polite">Загрузите фото руки — свет и тень настроятся автоматически. Затем переместите часы на запястье.</p><details class="photo-fit"><summary>Точная настройка</summary>
 <p class="hint">Автоматическая настройка уже применена. Здесь можно вручную уточнить результат.</p>
 <div class="ctl"><label for="fitWidth">Ширина часов</label><input id="fitWidth" type="range" min="35" max="150" value="100"><output id="fitWidthOut">100%</output></div>
 <div class="ctl"><label for="fitHeight">Высота часов</label><input id="fitHeight" type="range" min="50" max="140" value="100"><output id="fitHeightOut">100%</output></div><div class="ctl"><label for="fitCurve">Изгиб браслета</label><input id="fitCurve" type="range" min="0" max="80" value="25"><output id="fitCurveOut">25%</output></div><div class="ctl"><label for="fitPerspective">Перспектива</label><input id="fitPerspective" type="range" min="-45" max="45" value="0"><output id="fitPerspectiveOut">0%</output></div><div class="ctl"><label for="fitLight">Яркость</label><input id="fitLight" type="range" min="65" max="130" value="100"><output id="fitLightOut">100%</output></div><div class="ctl"><label for="fitSlant">Наклон часов</label><input id="fitSlant" type="range" min="-35" max="35" value="0"><output id="fitSlantOut">0°</output></div>
@@ -750,6 +751,23 @@ var FIT={width:100,height:100,curve:25,perspective:0,light:100,slant:0,shadow:25
 var VIEW={x:450,y:600,s:1,r:0},EDIT='watch',WATCH_VISIBLE=true;
 var cv=$('#cv'), ctx=cv.getContext?cv.getContext('2d'):null, CW=900, CH=1200, PX=2;
 var imgs={}, dlCap=null;
+var wristRequest=0,wristAnchor=null,wristMarks=null;
+function placeWrist(g){
+  wristAnchor=g;S.tx.x=g.x;S.tx.y=g.y;S.tx.r=g.angle;
+  var w=BY[S.pick],height=w&&w.cut?200*w.cut.height/w.cut.width:VH;
+  S.tx.s=Math.max(.4,Math.min(3.2,g.width*1.25/height));syncCtl();applyAutoFit();
+}
+async function recognizeWrist(){
+  if(!S.photo){$('#autoFitStatus').textContent='Сначала загрузите фото руки.';return;}
+  var request=++wristRequest,photo=S.photo;wristMarks=null;$('#autoFit').disabled=true;$('#autoFitStatus').textContent='Определяем запястье… При первом запуске загружается модуль распознавания.';
+  try{
+    var g=await window.WristDetection.detect(photo);if(request!==wristRequest||photo!==S.photo)return;
+    if(!g){$('#autoFitStatus').textContent='Не удалось уверенно определить запястье. Нажмите «Указать запястье» и отметьте два его края.';return;}
+    var k=Math.min(CW/photo.width,CH/photo.height);placeWrist({x:(CW-photo.width*k)/2+g.x*k,y:(CH-photo.height*k)/2+g.y*k,width:g.width*k,angle:g.angle});
+    $('#autoFitStatus').textContent='Запястье найдено. Положение, угол и размер подогнаны автоматически. При необходимости уточните пальцами.';
+  }catch(e){if(request===wristRequest)$('#autoFitStatus').textContent='Распознавание недоступно. Нажмите «Указать запястье»: два касания подгонят размер и угол.';}
+  finally{if(request===wristRequest)$('#autoFit').disabled=false;}
+}
 var AUTO_FIT=true, autoSample=null;
 function syncFitControls(){['Width','Height','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=Math.round(FIT[n.toLowerCase()])+(n==='Slant'?'°':'%');});}
 function sampleHand(){
@@ -921,7 +939,7 @@ function loadPhoto(file){
   if(!file) return;
   var url=URL.createObjectURL(file), im=new Image();
   im.onload=function(){
-    S.photo=im; $('#demoBadge').hidden=true; WATCH_VISIBLE=true;$('#toggleWatch').textContent='Скрыть часы';$('#toggleWatch').setAttribute('aria-pressed','false');editMode('watch');resetView();resetTx();autoSample=null;applyAutoFit(); draw();
+    S.photo=im; $('#demoBadge').hidden=true; WATCH_VISIBLE=true;$('#toggleWatch').textContent='Скрыть часы';$('#toggleWatch').setAttribute('aria-pressed','false');editMode('watch');resetView();resetTx();autoSample=null;wristAnchor=null;applyAutoFit();recognizeWrist(); draw();
     toast('Фото загружено. Перетащите часы на запястье.');
   };
   im.onerror=function(){ toast('Не удалось открыть фото. Попробуйте другое.'); };
@@ -934,7 +952,8 @@ $('#fileGal').addEventListener('change',function(e){ loadPhoto(e.target.files[0]
 $('#btnReset').addEventListener('click',function(){ resetTx(); draw(); });
 
 ['Width','Height','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){AUTO_FIT=false;FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
-$('#autoFit').onclick=applyAutoFit;
+$('#autoFit').onclick=function(){applyAutoFit();recognizeWrist();};
+$('#markWrist').onclick=function(){if(!S.photo){toast('Сначала загрузите фото руки.');return;}wristRequest++;$('#autoFit').disabled=false;editMode('watch');wristMarks=[];$('#autoFitStatus').textContent='Коснитесь двух противоположных краёв запястья там, где будет браслет. Повторное нажатие начинает заново.';};
 $('#fitReset').addEventListener('click',function(){FIT={width:100,height:100,curve:25,perspective:0,light:100,slant:0,shadow:25};['Width','Height','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
 
 $('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; syncCtl(); draw(); });
@@ -1056,7 +1075,7 @@ $('#btnCutUse').addEventListener('click',function(){
   BY[id]=w; META[id]={wear:'Вырезаны из вашего фото. Двигайте их по руке пальцем.'};
   S.custom.push(w);
   show('tryon'); renderPicker(); setPick(id);
-  S.tx.x=CW/2; S.tx.y=S.photo?CH*.55:690; S.tx.s=1.5; S.tx.r=0; syncCtl();applyAutoFit(); draw();
+  if(wristAnchor)placeWrist(wristAnchor);else{S.tx.x=CW/2; S.tx.y=S.photo?CH*.55:690; S.tx.s=1.5; S.tx.r=0; syncCtl();applyAutoFit();}draw();
   toast('Ваши часы добавлены в примерку.');
 });
 $('#btnCut').addEventListener('click',function(){ $('#fileCut').click(); });
@@ -1069,7 +1088,7 @@ function localPoint(p){var a=-VIEW.r*Math.PI/180,x=p.x-VIEW.x,y=p.y-VIEW.y;retur
 function activePoint(p){return EDIT==='watch'?localPoint(p):p;}
 function beginGesture(){var ids=Object.keys(ptrs).slice(0,2),ps=ids.map(function(id){return activePoint(ptrs[id]);});var t=EDIT==='watch'?S.tx:VIEW;gesture={ids:ids,ps:ps,tx:{x:t.x,y:t.y,s:t.s,r:t.r}};}
 function wrapAngle(a){return ((a+180)%360+360)%360-180;}
-cv.addEventListener('pointerdown',function(e){if(e.button&&e.button!==0)return;e.preventDefault();cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=cpt(e);beginGesture();});
+cv.addEventListener('pointerdown',function(e){if(e.button&&e.button!==0)return;e.preventDefault();if(wristMarks){var point=localPoint(cpt(e));wristMarks.push(point);if(wristMarks.length===1){$('#autoFitStatus').textContent='Теперь коснитесь противоположного края запястья.';}else{var a=wristMarks[0],b=wristMarks[1],width=Math.hypot(b.x-a.x,b.y-a.y);wristMarks=null;if(width<25){$('#autoFitStatus').textContent='Точки слишком близко. Нажмите «Указать запястье» ещё раз.';return;}placeWrist({x:(a.x+b.x)/2,y:(a.y+b.y)/2,width:width,angle:wrapAngle(Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI-90)});$('#autoFitStatus').textContent='Посадка настроена по двум точкам. Свет и тень подобраны автоматически.';}return;}wristRequest++;$('#autoFit').disabled=false;cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=cpt(e);beginGesture();});
 cv.addEventListener('pointermove',function(e){if(!ptrs[e.pointerId]||!gesture)return;e.preventDefault();ptrs[e.pointerId]=cpt(e);var g=gesture,t=EDIT==='watch'?S.tx:VIEW,ps=g.ids.map(function(id){return activePoint(ptrs[id]);}),a=g.ps[0],b=ps[0];
 if(ps.length===1){t.x=g.tx.x+b.x-a.x;t.y=g.tx.y+b.y-a.y;}else{var a2=g.ps[1],b2=ps[1],old={x:(a.x+a2.x)/2,y:(a.y+a2.y)/2},now={x:(b.x+b2.x)/2,y:(b.y+b2.y)/2};var d=Math.hypot(a2.x-a.x,a2.y-a.y),ratio=d>1?Math.hypot(b2.x-b.x,b2.y-b.y)/d:1;var angle=wrapAngle((Math.atan2(b2.y-b.y,b2.x-b.x)-Math.atan2(a2.y-a.y,a2.x-a.x))*180/Math.PI);t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,g.tx.s*ratio));ratio=t.s/g.tx.s;var rad=angle*Math.PI/180,x=g.tx.x-old.x,y=g.tx.y-old.y;t.x=now.x+ratio*(x*Math.cos(rad)-y*Math.sin(rad));t.y=now.y+ratio*(x*Math.sin(rad)+y*Math.cos(rad));t.r=wrapAngle(g.tx.r+angle);}syncCtl();syncView();draw();});
 function endPtr(e){delete ptrs[e.pointerId];beginGesture();if(EDIT==='watch'){refreshAutoLight();draw();}}
