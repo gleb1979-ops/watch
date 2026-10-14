@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WATCH EDIT — мои часы</title><meta name="description" content="Каталог часов с примеркой на вашей руке. Выбирайте стиль, сравнивайте модели и добавляйте часы в коллекцию.">
+<title>WATCH EDIT — мои часы</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect x=%2222%22 y=%222%22 width=%2220%22 height=%2260%22 rx=%224%22 fill=%22%2356696F%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2218%22 fill=%22%23E0AE5E%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2213%22 fill=%22%2310262E%22/%3E%3Cpath d=%22M32 24v8l6 4%22 stroke=%22%23E0AE5E%22 stroke-width=%223%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E"><meta name="description" content="Ваши собственные часы: сфотографируйте их и примерьте на руке. Фото хранятся только в вашем браузере.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -202,7 +202,8 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 .language-picker{display:inline-flex;gap:3px;align-items:center;direction:ltr}.language-picker button{background:transparent;border:1px solid var(--line);border-radius:5px;color:var(--muted);font:inherit;font-size:.75rem;min-height:40px;padding:7px 10px;cursor:pointer}.language-picker button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}[dir="rtl"] .opt{text-align:right;align-items:flex-start}[dir="rtl"] .cal li{border-left-width:1px;border-right-width:4px}[dir="rtl"] .ctl output{text-align:left}[dir="rtl"] .hero h1{font-family:var(--f-display);letter-spacing:-.015em}[dir="rtl"] .track{direction:ltr}[dir="rtl"] .brand{direction:ltr}[dir="rtl"] .badge{left:auto;right:10px}.cat-pic img{object-fit:contain}.form-note{padding:14px;border:1px solid var(--line);border-radius:8px;margin-bottom:20px;color:var(--muted);font-size:.85rem}body[data-embed="true"] .language-picker{display:none}
 .photo-fit{border:1px solid var(--line);border-radius:10px;padding:14px}.photo-fit summary{cursor:pointer;font-weight:600}.photo-fit .ctl{margin-block:12px}.photo-fit .hint{margin-block:10px}
 </style>
-<script src="locale.js?v=20261014d" defer></script></head>
+<script src="locale.js?v=20261014e" defer></script>
+<script src="watch-real.js?v=20261014a" defer></script></head>
 <body>
 
 <div class="wrap">
@@ -292,6 +293,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 <p class="hint">Загрузите фото своей руки без часов. Сначала подгоните часы в режиме «Часы», затем выберите «Рука + часы» для совместного поворота и приближения.</p>
 <div class="ctl"><label for="fitWidth">Ширина часов</label><input id="fitWidth" type="range" min="55" max="130" value="100"><output id="fitWidthOut">100%</output></div>
 <div class="ctl"><label for="fitSlant">Наклон часов</label><input id="fitSlant" type="range" min="-35" max="35" value="0"><output id="fitSlantOut">0°</output></div>
+<div class="ctl"><label for="fitCurve">Изгиб браслета</label><input id="fitCurve" type="range" min="0" max="80" value="40"><output id="fitCurveOut">40%</output></div>
 <div class="ctl"><label for="fitShadow">Тень на руке</label><input id="fitShadow" type="range" min="0" max="70" value="25"><output id="fitShadowOut">25%</output></div>
 <button class="btn" id="fitReset" type="button">Сбросить посадку</button>
 <p class="hint">Поворот общей фотографии сохраняет положение часов на руке. Это фотографическая примерка; вид сбоку не создаётся автоматически.</p></details>
@@ -555,7 +557,7 @@ $('#btnCutSave').addEventListener('click',function(){
 });
 
 /* ---------- Примерка ---------- */
-var FIT={width:100,slant:0,shadow:25};
+var FIT={width:100,curve:40,slant:0,shadow:25};
 var VIEW={x:450,y:600,s:1,r:0},EDIT='watch',WATCH_VISIBLE=true;
 var cv=$('#cv'), ctx=cv.getContext?cv.getContext('2d'):null, CW=900, CH=1200, PX=2;
 var vid=$('#vid'), LIVE={on:false,stream:null,face:'environment',raf:0,request:0};
@@ -616,9 +618,8 @@ function draw(){
   ctx.save();
   ctx.translate(S.tx.x,S.tx.y); ctx.rotate(S.tx.r*Math.PI/180); ctx.scale(S.tx.s,S.tx.s);
   ctx.transform(FIT.width/100,0,Math.tan(FIT.slant*Math.PI/180),1,0,0);
-  ctx.shadowColor='rgba(20,12,7,'+(FIT.shadow/100)+')';ctx.shadowBlur=5;ctx.shadowOffsetX=1;ctx.shadowOffsetY=3;
-  var cw=200, ch=200*w.cut.height/w.cut.width;
-  ctx.drawImage(w.cut,-cw/2,-ch/2,cw,ch);
+  if(window.WatchReal){WatchReal.draw(ctx,w.cut,{width:200,curve:FIT.curve,shadow:FIT.shadow/100});}
+  else{ctx.shadowColor='rgba(20,12,7,'+(FIT.shadow/100)+')';ctx.shadowBlur=5;ctx.shadowOffsetX=1;ctx.shadowOffsetY=3;var cw=200, ch=200*w.cut.height/w.cut.width;ctx.drawImage(w.cut,-cw/2,-ch/2,cw,ch);}
   ctx.restore();ctx.restore();
 }
 function syncCtl(){
@@ -662,8 +663,8 @@ $('#fileCam').addEventListener('change',function(e){ loadPhoto(e.target.files[0]
 $('#fileGal').addEventListener('change',function(e){ loadPhoto(e.target.files[0]); e.target.value=''; });
 $('#btnReset').addEventListener('click',function(){ resetTx(); draw(); });
 
-['Width','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
-$('#fitReset').addEventListener('click',function(){FIT={width:100,slant:0,shadow:25};['Width','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
+['Width','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
+$('#fitReset').addEventListener('click',function(){FIT={width:100,curve:40,slant:0,shadow:25};['Width','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
 
 $('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; syncCtl(); draw(); });
 $('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; syncCtl(); draw(); });

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WATCH EDIT — управление каталогом</title><meta name="description" content="Каталог часов с примеркой на вашей руке. Выбирайте стиль, сравнивайте модели и добавляйте часы в коллекцию.">
+<title>WATCH EDIT — управление каталогом</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect x=%2222%22 y=%222%22 width=%2220%22 height=%2260%22 rx=%224%22 fill=%22%2356696F%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2218%22 fill=%22%23E0AE5E%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2213%22 fill=%22%2310262E%22/%3E%3Cpath d=%22M32 24v8l6 4%22 stroke=%22%23E0AE5E%22 stroke-width=%223%22 fill=%22none%22 stroke-linecap=%22round%22/%3E%3C/svg%3E"><meta name="robots" content="noindex"><meta name="description" content="Управление каталогом WATCH EDIT: добавление и удаление часов.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500;600&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -201,7 +201,8 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 
 .language-picker{display:inline-flex;gap:3px;align-items:center;direction:ltr}.language-picker button{background:transparent;border:1px solid var(--line);border-radius:5px;color:var(--muted);font:inherit;font-size:.75rem;min-height:40px;padding:7px 10px;cursor:pointer}.language-picker button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}[dir="rtl"] .opt{text-align:right;align-items:flex-start}[dir="rtl"] .cal li{border-left-width:1px;border-right-width:4px}[dir="rtl"] .ctl output{text-align:left}[dir="rtl"] .hero h1{font-family:var(--f-display);letter-spacing:-.015em}[dir="rtl"] .track{direction:ltr}[dir="rtl"] .brand{direction:ltr}[dir="rtl"] .badge{left:auto;right:10px}.cat-pic img{object-fit:contain}.form-note{padding:14px;border:1px solid var(--line);border-radius:8px;margin-bottom:20px;color:var(--muted);font-size:.85rem}body[data-embed="true"] .language-picker{display:none}
 </style>
-<script src="locale.js?v=20261014b" defer></script></head>
+<script src="locale.js?v=20261014e" defer></script>
+<script src="watch-real.js?v=20261014a" defer></script></head>
 <body>
 
 <div class="wrap">
@@ -633,6 +634,7 @@ $('#btnCutSave').addEventListener('click',function(){
 });
 
 /* ---------- Примерка ---------- */
+var FIT={curve:40,shadow:30};
 var cv=$('#cv'), ctx=cv.getContext?cv.getContext('2d'):null, CW=900, CH=1200, PX=2;
 var vid=$('#vid'), LIVE={on:false,stream:null,face:'environment',raf:0,request:0};
 function resetTx(){ S.tx={x:CW/2,y:S.photo?CH*.55:690,s:1.5,r:0}; syncCtl(); }
@@ -690,9 +692,8 @@ function draw(){
   var w=SW[S.pick]; if(!w||!w.cut.width||(w.cut.tagName==='IMG'&&(!w.cut.complete||!w.cut.naturalWidth))) return;
   ctx.save();
   ctx.translate(S.tx.x,S.tx.y); ctx.rotate(S.tx.r*Math.PI/180); ctx.scale(S.tx.s,S.tx.s);
-  ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=14; ctx.shadowOffsetY=5;
-  var cw=200, ch=200*w.cut.height/w.cut.width;
-  ctx.drawImage(w.cut,-cw/2,-ch/2,cw,ch);
+  if(window.WatchReal){WatchReal.draw(ctx,w.cut,{width:200,curve:FIT.curve,shadow:FIT.shadow/100});}
+  else{ctx.shadowColor='rgba(20,12,7,'+(FIT.shadow/100)+')';ctx.shadowBlur=5;ctx.shadowOffsetX=1;ctx.shadowOffsetY=3;var cw=200, ch=200*w.cut.height/w.cut.width;ctx.drawImage(w.cut,-cw/2,-ch/2,cw,ch);}
   ctx.restore();
 }
 function syncCtl(){
