@@ -358,7 +358,19 @@ function localBackend(){
   var req=indexedDB.open('watch-personal-v1',1);req.onupgradeneeded=function(){req.result.createObjectStore('watches',{keyPath:'id'});};req.onsuccess=function(){resolve(req.result);};req.onerror=function(){reject(req.error);};req.onblocked=function(){reject(new Error('Закройте другие вкладки сайта и повторите.'));};
  });
  function url(blob){var u=URL.createObjectURL(blob);urls.push(u);return u;}
- function load(){return dbPromise.then(function(db){return new Promise(function(resolve,reject){var req=db.transaction('watches','readonly').objectStore('watches').getAll();req.onsuccess=function(){var old=urls;urls=[];var items=req.result.sort(function(a,b){return b.at-a.at;}).map(function(row){var views=[{role:'front',blob:row.cutBlob,thumb:row.thumbBlob}].concat(row.views||[]).map(function(v){var u=url(v.blob);return {role:v.role,cutUrl:u,thumbUrl:v.thumb?url(v.thumb):u};});return Object.assign(pickFields(row),{id:row.id,at:row.at,views:views,cutUrl:views[0].cutUrl,photoUrl:views[0].cutUrl,thumbUrl:views[0].thumbUrl,bytes:row.cutBlob.size+(row.thumbBlob?row.thumbBlob.size:0)+(row.views||[]).reduce(function(n,v){return n+v.blob.size+(v.thumb?v.thumb.size:0);},0)});});setTimeout(function(){old.forEach(function(u){URL.revokeObjectURL(u);});},20000);resolve(items);};req.onerror=function(){reject(req.error);};});});}
+ function dataImage(blob){return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(String(reader.result));};reader.onerror=function(){reject(reader.error);};reader.readAsDataURL(blob);});}
+ function decodeImage(src){return new Promise(function(resolve,reject){var im=new Image();im.onload=function(){if(im.naturalWidth>0)resolve(im);else reject(new Error('image'));};im.onerror=function(){reject(new Error('image'));};im.src=src;});}
+ function preview(v){var candidate=v.thumb||v.blob;return dataImage(candidate).then(function(src){return decodeImage(src).then(function(){return src;});}).catch(function(){return dataImage(v.blob).then(decodeImage).then(function(im){return scaled(im,im.naturalWidth,im.naturalHeight,256,true).toDataURL('image/png');});});}
+ function load(){return dbPromise.then(function(db){return new Promise(function(resolve,reject){
+ var req=db.transaction('watches','readonly').objectStore('watches').getAll();
+ req.onsuccess=function(){var old=urls;urls=[];
+ Promise.all(req.result.sort(function(a,b){return b.at-a.at;}).map(function(row){
+  return Promise.all([{role:'front',blob:row.cutBlob,thumb:row.thumbBlob}].concat(row.views||[]).map(function(v){
+   var u=url(v.blob);return preview(v).then(function(thumb){return {role:v.role,cutUrl:u,thumbUrl:thumb};});
+  })).then(function(views){return Object.assign(pickFields(row),{id:row.id,at:row.at,views:views,cutUrl:views[0].cutUrl,photoUrl:views[0].cutUrl,thumbUrl:views[0].thumbUrl,bytes:row.cutBlob.size+(row.thumbBlob?row.thumbBlob.size:0)+(row.views||[]).reduce(function(n,v){return n+v.blob.size+(v.thumb?v.thumb.size:0);},0)});});
+ })).then(function(items){setTimeout(function(){old.forEach(function(u){URL.revokeObjectURL(u);});},20000);resolve(items);},reject);
+ };req.onerror=function(){reject(req.error);};
+ });});}
  function emit(){return load().then(function(items){subs.forEach(function(cb){cb(items);});});}
  function mutate(fn){return dbPromise.then(function(db){return new Promise(function(resolve,reject){var tx=db.transaction('watches','readwrite');fn(tx.objectStore('watches'),tx);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error);};tx.onabort=function(){reject(tx.error||new Error('Не удалось сохранить.'));};});}).then(emit);}
  return {watch:function(cb,err){if(subs.indexOf(cb)<0)subs.push(cb);emit().catch(err);},add:function(meta,cut,thumb){return mutate(function(s){s.put(Object.assign(pickFields(meta),{id:'personal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),at:Date.now(),cutBlob:cut,thumbBlob:thumb,views:[]}));});},addView:function(id,role,blob,thumb){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row||(row.views||[]).length>=2){tx.abort();return;}row.views=(row.views||[]).concat({role:role,blob:blob,thumb:thumb});s.put(row);};});},remove:function(item){return mutate(function(s){s.delete(item.id);});}};
@@ -560,7 +572,7 @@ $('#btnCutSave').addEventListener('click',function(){
   var meta={name:($('#inName').value||'').trim().slice(0,60)||'Часы',brand:($('#inBrand').value||'').trim().slice(0,40),price:($('#inPrice').value||'').trim().slice(0,30),gender:$('#selGender').value,style:$('#selStyle').value,link:link};
   btn.disabled=true; btn.textContent='Сохраняю…';
   var cutC=scaled(CUT.out,CUT.out.width,CUT.out.height,1200,true), thumbC=scaled(CUT.out,CUT.out.width,CUT.out.height,256,true);
-  Promise.all([blobOf(cutC,'image/webp',.92),blobOf(thumbC,'image/webp',.85)])
+  Promise.all([blobOf(cutC,'image/png'),blobOf(thumbC,'image/png')])
     .then(function(bs){return targetId?Store.be.addView(targetId,viewRole,bs[0],bs[1]):Store.be.add(meta,bs[0],bs[1]);})
     .then(function(){ toast('Часы сохранены в каталог.'); show('cat'); requestAnimationFrame(function(){renderCatalog();}); })
     .catch(function(e){ toast(saveErr(e)); })
