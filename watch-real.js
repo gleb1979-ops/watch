@@ -86,26 +86,28 @@ function draw(ctx,img,opt){
 
   // Projection: case stays flat; bracelet beyond it wraps around a cylinder.
   var top=P.top*P.h,bot=P.bot*P.h,mid=(top+bot)/2;
+  var bandLength=Math.max(.5,Math.min(1.5,(opt.bandlength==null?100:opt.bandlength)/100)),bandWidth=Math.max(.55,Math.min(1.45,(opt.bandwidth==null?100:opt.bandwidth)/100));
   var R=curve>0?P.w*P.caseW*(.62/curve):1e9; // wrist radius in image px
   var lim=Math.PI/2*.96;
   function proj(y){ // returns {y, cos} in image px relative to case centre
     var s=y<top?top-y:y>bot?y-bot:0,sign=y<top?-1:1;
     if(s===0)return {y:y-mid,c:1};
-    var t=Math.min(lim,s/R);
+    var t=Math.min(lim,s*bandLength/R);
     return {y:(sign<0?top:bot)-mid+sign*R*Math.sin(t),c:Math.cos(t)};
   }
   var pT=proj(0),pB=proj(P.h),outH=pB.y-pT.y;
   if(!work)work=canvas(1,1);
   var k=Math.min(1,Math.max(.35,cw*sc*1.25/P.w)); // render at screen resolution, never above source
-  var W=Math.ceil(P.w*k),H=Math.ceil(outH*k)+2;
+  var W=Math.ceil(P.w*k*Math.max(1,bandWidth)),H=Math.ceil(outH*k)+2;
   if(work.width!==W||work.height!==H){work.width=W;work.height=H;}
-  var wx=work.getContext('2d');wx.setTransform(1,0,0,1,0,0);wx.clearRect(0,0,W,H);wx.imageSmoothingQuality='high';
+  var wx=work.getContext('2d');wx.setTransform(1,0,0,1,0,0);wx.globalCompositeOperation='source-over';wx.globalAlpha=1;wx.clearRect(0,0,W,H);wx.imageSmoothingQuality='high';
   var step=Math.max(1,Math.round(2/k)),y,a,b,yy0,yy1,taper;
   for(y=0;y<P.h;y+=step){
     var h2=Math.min(step,P.h-y);a=proj(y);b=proj(y+h2);
     yy0=(a.y-pT.y)*k;yy1=(b.y-pT.y)*k;if(yy1-yy0<.05)continue;
     taper=1-(1-(a.c+b.c)/2)*.10; // slight narrowing as the band turns away
-    var dw=W*taper;
+    var blend=Math.min(1,Math.max(0,y<top?(top-y)/(P.h*.05):y>bot?(y-bot)/(P.h*.05):0));
+    var dw=P.w*k*taper*(1+(bandWidth-1)*blend);
     wx.drawImage(P.img,0,y,P.w,h2,(W-dw)/2,yy0,dw,yy1-yy0+.6);
   }
   wx.globalCompositeOperation='source-atop';
@@ -142,7 +144,7 @@ function draw(ctx,img,opt){
   wx.fillStyle=gl;wx.fillRect(0,cy0,W,cy1-cy0);
   wx.globalCompositeOperation='source-over';
 
-  var dx=-cw/2,dy=pT.y/P.w*cw,dh=H/k/P.w*cw;
+  var outputWidth=W/k/P.w*cw,dx=-outputWidth/2,dy=pT.y/P.w*cw,dh=H/k/P.w*cw;
   ctx.save();
   ctx.shadowColor='transparent';
   // Soft contact shadow, shaped like the watch, slightly below it.
@@ -155,25 +157,26 @@ function draw(ctx,img,opt){
     var far=5000/sc,ox=off*.35,oy=off;
     ctx.shadowOffsetX=far*m.a+ox*m.a+oy*m.c;ctx.shadowOffsetY=far*m.b+ox*m.b+oy*m.d;
     ctx.translate(-far,0);
-    ctx.drawImage(work,dx,dy,cw,dh);
+    ctx.drawImage(work,dx,dy,outputWidth,dh);
     ctx.restore();
     // Tight contact line right under the edges.
     var o2=cw*.008;
     ctx.save();ctx.shadowColor='rgba(0,0,0,'+Math.min(.75,shadow*1.8)+')';ctx.shadowBlur=Math.max(1,cw*.012*sc);
-    ctx.shadowOffsetX=far*m.a+o2*m.c;ctx.shadowOffsetY=far*m.b+o2*m.d;ctx.translate(-far,0);ctx.drawImage(work,dx,dy,cw,dh);ctx.restore();
+    ctx.shadowOffsetX=far*m.a+o2*m.c;ctx.shadowOffsetY=far*m.b+o2*m.d;ctx.translate(-far,0);ctx.drawImage(work,dx,dy,outputWidth,dh);ctx.restore();
   }
   // Brightness matched to the scene.
   var light=opt.light!=null?opt.light:amb?Math.max(.8,Math.min(1.06,.98+(amb.light-150)*.0012)):1;
   var hasFilter='filter' in ctx;
   if(hasFilter&&Math.abs(light-1)>.01)ctx.filter='brightness('+light+')';
-  ctx.drawImage(work,dx,dy,cw,dh);
+  ctx.drawImage(work,dx,dy,outputWidth,dh);
   if(hasFilter)ctx.filter='none';
   if(!hasFilter&&light<.99){ // Safari without canvas filters: darken over the watch only
     var t=canvas(work.width,work.height),tx=t.getContext('2d');tx.drawImage(work,0,0);tx.globalCompositeOperation='source-in';tx.fillStyle='rgba(0,0,0,'+(1-light)+')';tx.fillRect(0,0,t.width,t.height);
-    ctx.drawImage(t,dx,dy,cw,dh);
+    ctx.drawImage(t,dx,dy,outputWidth,dh);
   }
   ctx.restore();
 }
 
-window.WatchReal={prepare:prepare,draw:draw,ambient:ambient};
+window.WatchReal={prepare:prepare,draw:draw,ambient:ambient};window.dispatchEvent(new Event('watch-render-ready'));
 })();
+
