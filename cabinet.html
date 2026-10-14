@@ -207,10 +207,10 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 @media(min-width:900px){.try-grid{grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);align-items:start}.stage{position:sticky;top:12px}}
 @media(max-width:719px){.stage{width:100%;max-width:none}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
 dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px}dialog::backdrop{background:#000a}dialog h2{margin-bottom:12px}dialog .row{margin-top:16px}.view-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-block:16px}.view-card{min-width:0;border:1px solid var(--line);border-radius:8px;padding:8px}.view-card img{width:100%;height:100px;object-fit:contain}.view-card .btn{width:100%;min-height:40px;padding:6px;font-size:.8rem}.view-card p{font-size:.8rem}.watch-switch{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:end}.watch-switch .btn{font-size:.8rem;padding-inline:8px;min-height:44px}.watch-switch .fld{font-size:.8rem}.watch-switch select{min-height:44px;max-width:100%}</style>
-<script src="watch-fit.js?v=20261014t"></script>
-<script src="wrist.js?v=20261014t" defer></script>
-<script src="locale.js?v=20261014t" defer></script>
-<script src="watch-real.js?v=20261014q" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014t"><script src="fitting-workspace.js?v=20261014t" defer></script><script src="watch-info-ocr.js?v=20261014m" defer></script></head>
+<script src="watch-fit.js?v=20261014u"></script>
+<script src="wrist.js?v=20261014u" defer></script>
+<script src="locale.js?v=20261014u" defer></script>
+<script src="watch-real.js?v=20261014u" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014u"><script src="fitting-workspace.js?v=20261014u" defer></script><script src="watch-info-ocr.js?v=20261014u" defer></script></head>
 <body>
 
 <div class="wrap">
@@ -223,7 +223,7 @@ dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--sur
     <section id="v-cat">
       <div class="cat-head">
         <h1 class="cut-title">Мои часы</h1>
-        <button class="btn btn-primary" id="btnCatAdd" type="button" hidden>Добавить часы</button><button class="btn" id="btnExportCollection" type="button">Выгрузить весь каталог</button>
+        <button class="btn btn-primary" id="btnCatAdd" type="button" hidden>Добавить часы</button><button class="btn" id="btnExportCollection" type="button">Выгрузить весь каталог</button><button class="btn" id="btnImportCollection" type="button">Загрузить каталог</button><input id="fileImportCollection" type="file" accept="application/json,.json" hidden>
       </div>
       <p class="hint catalog-intro">Ваши часы хранятся только в этом браузере. Они не публикуются в общем каталоге. Очистка данных браузера удалит коллекцию.</p><div class="catalog-tools"><div class="fld"><label for="catSearch">Поиск по названию и бренду</label><input id="catSearch" type="search" placeholder="Например, Seiko"></div><div class="fld"><label for="catSort">Порядок</label><select id="catSort"><option value="new">Сначала новые</option><option value="name">По названию</option><option value="brand">По бренду</option></select></div></div><p class="hint" id="catStatus" role="status">Загружаю каталог…</p>
       <div class="fchips" id="fchips" role="group" aria-label="Фильтр по аудитории">
@@ -239,7 +239,7 @@ dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--sur
 
     <section id="v-edit" hidden>
       <button class="link back" id="btnCutBack" type="button">← К каталогу</button>
-      <h2 class="cut-title">Новые часы</h2>
+      <h2 class="cut-title" id="cutTitle">Новые часы</h2>
       <p class="hint">Белый фон удаляется автоматически. Проверьте результат перед сохранением. На сложном фоне можно уточнить рамку и допуск.</p>
       <div class="cut-grid">
         <div><p class="mono">1. ОБВЕДИТЕ ЧАСЫ</p><canvas id="cc" width="300" height="300" aria-label="Фото часов с рамкой"></canvas></div>
@@ -278,8 +278,8 @@ dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--sur
         </div>
         <div class="panel">
           <div>
-            <h2 id="tryName"></h2>
-            <p class="mono" id="tryMeta"></p>
+            <h2 id="tryName" data-no-translate></h2>
+            <p class="mono" id="tryMeta" data-no-translate></p>
           </div>
           <div class="picker" id="viewPicker" role="group" aria-label="Ракурсы часов"></div><div class="watch-switch"><button class="btn" id="previousWatch" type="button">Предыдущие</button><label class="fld">Выбрать часы<select id="chooseWatch" aria-label="Выбрать часы"></select></label><button class="btn" id="nextWatch" type="button">Следующие</button></div><p class="mono" id="watchPosition" aria-live="polite"></p><div class="picker" id="picker" role="listbox" aria-label="Часы из каталога"></div>
           <div class="photo-actions">
@@ -354,30 +354,62 @@ var FIELDS=['name','brand','price','gender','style','link'];
 function pickFields(v){ var o={}; FIELDS.forEach(function(k){ o[k]=(v&&typeof v[k]==='string')?v[k]:''; }); if(!GEN_N[o.gender]) o.gender='u'; return o; }
 
 function localBackend(){
- var subs=[],urls=[],dbPromise=new Promise(function(resolve,reject){
+ var subs=[],urls=[],previewCache=new Map(),dbPromise=new Promise(function(resolve,reject){
   if(!window.indexedDB){reject(new Error('Локальное хранилище недоступно.'));return;}
   var req=indexedDB.open('watch-personal-v1',1);req.onupgradeneeded=function(){req.result.createObjectStore('watches',{keyPath:'id'});};req.onsuccess=function(){resolve(req.result);};req.onerror=function(){reject(req.error);};req.onblocked=function(){reject(new Error('Закройте другие вкладки сайта и повторите.'));};
  });
  function url(blob){var u=URL.createObjectURL(blob);urls.push(u);return u;}
  function dataImage(blob){return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(String(reader.result));};reader.onerror=function(){reject(reader.error);};reader.readAsDataURL(blob);});}
  function decodeImage(src){return new Promise(function(resolve,reject){var im=new Image();im.onload=function(){if(im.naturalWidth>0)resolve(im);else reject(new Error('image'));};im.onerror=function(){reject(new Error('image'));};im.src=src;});}
- function preview(v){var candidate=v.thumb||v.blob;return dataImage(candidate).then(function(src){return decodeImage(src).then(function(){return src;});}).catch(function(){return dataImage(v.blob).then(decodeImage).then(function(im){return scaled(im,im.naturalWidth,im.naturalHeight,256,true).toDataURL('image/png');});});}
+ function preview(v,key){
+  if(previewCache.has(key))return previewCache.get(key);
+  var candidate=v.thumb||v.blob,result=dataImage(candidate).then(function(src){return decodeImage(src).then(function(im){return v.thumb?src:scaled(im,im.naturalWidth,im.naturalHeight,256,true).toDataURL('image/png');});}).catch(function(){return dataImage(v.blob).then(decodeImage).then(function(im){return scaled(im,im.naturalWidth,im.naturalHeight,256,true).toDataURL('image/png');});});
+  previewCache.set(key,result);result.catch(function(){previewCache.delete(key);});return result;
+ }
+
  function load(){return dbPromise.then(function(db){return new Promise(function(resolve,reject){
  var req=db.transaction('watches','readonly').objectStore('watches').getAll();
- req.onsuccess=function(){var old=urls;urls=[];
+ req.onsuccess=function(){var old=urls,usedPreviews=new Set();urls=[];
  Promise.all(req.result.sort(function(a,b){return b.at-a.at;}).map(function(row){
-  return Promise.all([{role:'front',blob:row.cutBlob,thumb:row.thumbBlob}].concat(row.views||[]).map(function(v){
-   var u=url(v.blob);return preview(v).then(function(thumb){return {role:v.role,cutUrl:u,thumbUrl:thumb};}).catch(function(){return {role:v.role,cutUrl:u,thumbUrl:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect width="128" height="128" fill="%23202624"/%3E%3C/svg%3E',error:true};});
+  return Promise.all([{role:'front',blob:row.cutBlob,thumb:row.thumbBlob}].concat(row.views||[]).map(function(v,index){
+   var key=row.id+':'+(row.imageVersion||row.at)+':'+index+':'+v.blob.size+':'+(v.thumb?v.thumb.size:0);usedPreviews.add(key);var u=url(v.blob);return preview(v,key).then(function(thumb){return {role:v.role,cutUrl:u,thumbUrl:thumb};}).catch(function(){return {role:v.role,cutUrl:u,thumbUrl:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect width="128" height="128" fill="%23202624"/%3E%3C/svg%3E',error:true};});
   })).then(function(views){return Object.assign(pickFields(row),{id:row.id,at:row.at,views:views,cutUrl:views[0].cutUrl,photoUrl:views[0].cutUrl,thumbUrl:views[0].thumbUrl,bytes:row.cutBlob.size+(row.thumbBlob?row.thumbBlob.size:0)+(row.views||[]).reduce(function(n,v){return n+v.blob.size+(v.thumb?v.thumb.size:0);},0)});});
- })).then(function(items){setTimeout(function(){old.forEach(function(u){URL.revokeObjectURL(u);});},20000);resolve(items);},reject);
+ })).then(function(items){previewCache.forEach(function(_,key){if(!usedPreviews.has(key))previewCache.delete(key);});setTimeout(function(){old.forEach(function(u){URL.revokeObjectURL(u);});},20000);resolve(items);},reject);
  };req.onerror=function(){reject(req.error);};
  });});}
- function exportCollection(){return dbPromise.then(function(db){return new Promise(function(resolve,reject){var r=db.transaction('watches','readonly').objectStore('watches').getAll();r.onsuccess=function(){resolve(r.result);};r.onerror=function(){reject(r.error);};});}).then(async function(rows){var watches=[];for(var row of rows){var views=[];for(var v of (row.views||[])){views.push({role:v.role,image:await dataImage(v.blob),thumbnail:v.thumb?await dataImage(v.thumb):null});}watches.push(Object.assign(pickFields(row),{id:row.id,at:row.at,main:{role:row.frontRole||'front',image:await dataImage(row.cutBlob),thumbnail:row.thumbBlob?await dataImage(row.thumbBlob):null},views:views}));}return {type:'watch-collection',version:1,exportedAt:new Date().toISOString(),watches:watches};});}
+ function allRows(){return dbPromise.then(function(db){return new Promise(function(resolve,reject){var r=db.transaction('watches','readonly').objectStore('watches').getAll();r.onsuccess=function(){resolve(r.result);};r.onerror=function(){reject(r.error);};});});}
+ async function exportCollection(){
+  var rows=await allRows(),parts=['{"type":"watch-collection","version":1,"exportedAt":'+JSON.stringify(new Date().toISOString())+',"watches":['];
+  for(var i=0;i<rows.length;i++){var row=rows[i],views=[];for(var v of (row.views||[]))views.push({role:v.role,image:await dataImage(v.blob),thumbnail:v.thumb?await dataImage(v.thumb):null});
+   var item=Object.assign(pickFields(row),{id:row.id,at:row.at,main:{role:row.frontRole||'front',image:await dataImage(row.cutBlob),thumbnail:row.thumbBlob?await dataImage(row.thumbBlob):null},views:views});
+   if(i)parts.push(',');parts.push(new Blob([JSON.stringify(item)],{type:'application/json'}));
+  }
+  parts.push(']}');return new Blob(parts,{type:'application/json'});
+ }
+ async function imageBlob(value){
+  if(typeof value!=='string')throw Error('Некорректный файл каталога.');
+  var m=/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/]*={0,2})$/.exec(value);if(!m||!m[2])throw Error('Некорректный файл каталога.');
+  var bin;try{bin=atob(m[2]);}catch(e){throw Error('Некорректный файл каталога.');}
+  var bytes=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+  try{await decodeImage(value);}catch(e){throw Error('Некорректный файл каталога.');}return new Blob([bytes],{type:m[1]});
+ }
+ async function importCollection(data){
+  if(!data||data.type!=='watch-collection'||data.version!==1||!Array.isArray(data.watches))throw Error('Некорректный файл каталога.');
+  var ready=[],ids=new Set();
+  for(var item of data.watches){
+   if(!item||typeof item.id!=='string'||!item.id||ids.has(item.id)||!item.main||!Array.isArray(item.views)||item.views.length>2)throw Error('Некорректный файл каталога.');ids.add(item.id);
+   var meta=pickFields(item);meta.name=meta.name.trim()||'Часы';meta.link=safeLink(meta.link);if(!STYLE_N[meta.style])meta.style='dress';
+   var row=Object.assign(meta,{id:item.id,at:Number.isFinite(item.at)?item.at:Date.now(),imageVersion:Date.now(),cutBlob:await imageBlob(item.main.image),thumbBlob:null,views:[]});
+   if(item.main.thumbnail){try{row.thumbBlob=await imageBlob(item.main.thumbnail);}catch(e){}}
+   for(var v of item.views){if(!v||!VIEW_NAMES[v.role])throw Error('Некорректный файл каталога.');var extra={role:v.role,blob:await imageBlob(v.image),thumb:null};if(v.thumbnail){try{extra.thumb=await imageBlob(v.thumbnail);}catch(e){}}row.views.push(extra);}ready.push(row);
+  }
+  var added=0;await mutate(function(store){ready.forEach(function(row){var r=store.get(row.id);r.onsuccess=function(){if(!r.result){store.put(row);added++;}};});});return added;
+ }
+
  function emit(){return load().then(function(items){subs.forEach(function(cb){cb(items);});});}
  function mutate(fn){return dbPromise.then(function(db){return new Promise(function(resolve,reject){var tx=db.transaction('watches','readwrite');fn(tx.objectStore('watches'),tx);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error);};tx.onabort=function(){reject(tx.error||new Error('Не удалось сохранить.'));};});}).then(emit);}
- return {exportCollection:exportCollection,watch:function(cb,err){if(subs.indexOf(cb)<0)subs.push(cb);emit().catch(err);},add:function(meta,cut,thumb){return mutate(function(s){s.put(Object.assign(pickFields(meta),{id:'personal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),at:Date.now(),cutBlob:cut,thumbBlob:thumb,views:[]}));});},addView:function(id,role,blob,thumb,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row){tx.abort();return;}if(index===0){row.cutBlob=blob;row.thumbBlob=thumb;}else{row.views=row.views||[];if(index!=null)row.views[index-1]={role:role,blob:blob,thumb:thumb};else{if(row.views.length>=2){tx.abort();return;}row.views.push({role:role,blob:blob,thumb:thumb});}}s.put(row);};});},removeView:function(id,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row||index<1){tx.abort();return;}row.views=(row.views||[]).filter(function(_,i){return i!==index-1;});s.put(row);};});},updateInfo:function(id,meta){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){if(!r.result){tx.abort();return;}s.put(Object.assign(r.result,pickFields(meta)));};});},remove:function(item){return mutate(function(s){s.delete(item.id);});}};
+ return {exportCollection:exportCollection,importCollection:importCollection,watch:function(cb,err){if(subs.indexOf(cb)<0)subs.push(cb);emit().catch(err);},add:function(meta,cut,thumb){return mutate(function(s){s.put(Object.assign(pickFields(meta),{id:'personal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),at:Date.now(),cutBlob:cut,thumbBlob:thumb,views:[]}));});},addView:function(id,role,blob,thumb,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row){tx.abort();return;}if(index===0){row.cutBlob=blob;row.thumbBlob=thumb;}else{row.views=row.views||[];if(index!=null)row.views[index-1]={role:role,blob:blob,thumb:thumb};else{if(row.views.length>=2){tx.abort();return;}row.views.push({role:role,blob:blob,thumb:thumb});}}row.imageVersion=(row.imageVersion||row.at||0)+1;s.put(row);};});},removeView:function(id,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row||index<1){tx.abort();return;}row.views=(row.views||[]).filter(function(_,i){return i!==index-1;});row.imageVersion=(row.imageVersion||row.at||0)+1;s.put(row);};});},updateInfo:function(id,meta){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){if(!r.result){tx.abort();return;}s.put(Object.assign(r.result,pickFields(meta)));};});},remove:function(item){return mutate(function(s){s.delete(item.id);});}};
 }
-function rawUrl(path){return path;}
 var SW={},VIEW_INDEX=0,EXTRA_TARGET=null,EXTRA_INDEX=null,INFO_TARGET=null;
 var VIEW_NAMES={front:'Спереди',angle:'Под углом',side:'Сбоку'};
 function toW(it){
@@ -385,9 +417,9 @@ function toW(it){
   if(!w||w.url!==source){
     var im=new Image(); im.crossOrigin='anonymous'; im.onload=function(){
       // Repair opaque white backgrounds left by the previous catalog exporter.
-      try{var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;var x=c.getContext('2d');x.drawImage(im,0,0);var px=x.getImageData(0,0,c.width,c.height),d=px.data;var corners=[0,(c.width-1)*4,(c.height-1)*c.width*4,(c.width*c.height-1)*4];if(corners.every(function(i){return d[i]>235&&d[i+1]>235&&d[i+2]>235&&d[i+3]===255;})){cutPixels(d,c.width,c.height,35,false);x.putImageData(px,0,0);SW[it.id].cut=c;it.displayUrl=c.toDataURL('image/png');document.querySelectorAll('[data-image-id]').forEach(function(el){if(el.dataset.imageId===it.id)el.src=it.displayUrl;});}}catch(e){}
+      try{var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;var x=c.getContext('2d');x.drawImage(im,0,0);var px=x.getImageData(0,0,c.width,c.height),d=px.data;var corners=[0,(c.width-1)*4,(c.height-1)*c.width*4,(c.width*c.height-1)*4];if(corners.every(function(i){return d[i]>235&&d[i+1]>235&&d[i+2]>235&&d[i+3]===255;})){cutPixels(d,c.width,c.height,35,false);x.putImageData(px,0,0);w.cut=c;it.displayUrl=c.toDataURL('image/png');document.querySelectorAll('[data-image-id]').forEach(function(el){if(el.dataset.imageId===it.id)el.src=it.displayUrl;});}}catch(e){}
       if(S.pick===it.id&&SW[it.id]&&SW[it.id].url===source&&fitting)fitting.changed();draw();
-    }; im.onerror=function(){ if(it.cutPath&&im.src.indexOf('raw.githubusercontent')<0) im.src=rawUrl(it.cutPath); }; im.src=source;
+    }; im.onerror=function(){w.error=true;if(S.pick===it.id)toast('Не удалось открыть фото. Попробуйте другое.');}; im.src=source;
     w=SW[it.id]={id:it.id,cut:im,url:source};
   }
   w.item=it; return w;
@@ -403,10 +435,8 @@ function initStore(){
   Store.be.watch(onItems,function(){ Store.ready=true; Store.error=true; renderCatalog(); });
 }
 function saveErr(e){
-  var s=e&&e.status;
   if(e&&e.name==='QuotaExceededError')return 'Недостаточно места на устройстве. Удалите лишние часы и повторите.';
-  if(s===422) return 'Файл с таким именем уже есть. Попробуйте ещё раз.';
-  return 'Не удалось сохранить. Проверьте интернет и попробуйте ещё раз.';
+  return 'Хранилище браузера недоступно. Возможно, включён приватный режим.';
 }
 function reloadList(){Store.error=false;Store.ready=false;renderCatalog();Store.be.watch(onItems,function(){Store.ready=true;Store.error=true;renderCatalog();});}
 /* ---------- Каталог ---------- */
@@ -415,7 +445,7 @@ function renderCatalog(){
   var el=$('#catBody'), st=$('#catStatus');
   $('#btnCatAdd').hidden=!Store.canWrite;$('#btnExportCollection').disabled=!Store.ready||!Store.items.length;
   if(!Store.ready){ st.textContent='Загружаю каталог…'; el.innerHTML=''; return; }
-  if(Store.error){ st.textContent='Не удалось загрузить каталог. Проверьте соединение.'; el.innerHTML='<button class="btn" id="retryCatalog" type="button">Повторить загрузку</button>'; return; }
+  if(Store.error){ st.textContent='Хранилище браузера недоступно. Возможно, включён приватный режим.'; el.innerHTML='<button class="btn" id="retryCatalog" type="button">Повторить загрузку</button>'; return; }
   else st.textContent='';
   var list=Store.items.filter(function(it){ return (S.filter==='all'||it.gender===S.filter)&&(!S.search||(it.name+' '+it.brand).toLocaleLowerCase().indexOf(S.search)>=0); });
   if(S.sort==='name'||S.sort==='brand') list.sort(function(a,b){return (a[S.sort]||a.name).localeCompare(b[S.sort]||b.name,'ru');});
@@ -427,15 +457,15 @@ function renderCatalog(){
   }
   el.innerHTML=list.map(function(it,index){
     var lk=safeLink(it.link);
-    return '<article class="cat-card"><div class="cat-pic"><img alt="'+esc(it.name)+'" src="'+esc(it.thumbUrl||it.displayUrl||it.cutUrl)+'" data-image-id="'+esc(it.id)+'" data-p="'+esc(it.cutPath||'')+'" data-fallback="'+esc(it.cutUrl)+'" loading="'+(index<8?'eager':'lazy')+'" decoding="async"></div><div class="cat-info">'+
-      '<h3 class="name">'+esc(it.name)+'</h3>'+
-      '<div class="cat-meta">'+(it.brand?'<span>'+esc(it.brand)+'</span>':'')+'<span>'+esc(GEN_N[it.gender])+'</span>'+(it.style&&STYLE_N[it.style]?'<span>'+esc(STYLE_N[it.style])+'</span>':'')+'</div>'+
-      (it.price?'<p class="price">'+esc(it.price)+'</p>':'')+
+    return '<article class="cat-card"><div class="cat-pic"><img data-no-translate alt="'+esc(it.name)+'" src="'+esc(it.thumbUrl||it.displayUrl||it.cutUrl)+'" data-image-id="'+esc(it.id)+'" data-fallback="'+esc(it.cutUrl)+'" loading="'+(index<8?'eager':'lazy')+'" decoding="async"></div><div class="cat-info">'+
+      '<h3 class="name" data-no-translate>'+esc(it.name)+'</h3>'+
+      '<div class="cat-meta">'+(it.brand?'<span data-no-translate>'+esc(it.brand)+'</span>':'')+'<span>'+esc(GEN_N[it.gender])+'</span>'+(it.style&&STYLE_N[it.style]?'<span>'+esc(STYLE_N[it.style])+'</span>':'')+'</div>'+
+      (it.price?'<p class="price" data-no-translate>'+esc(it.price)+'</p>':'')+
       (lk?'<a class="cat-link" href="'+esc(lk)+'" target="_blank" rel="noopener">Страница товара</a>':'')+
-      '<p class="mono">'+(it.views||[]).length+' / 3 · '+(it.bytes/1048576).toFixed(2)+' MB</p><div class="row"><button class="btn" type="button" data-k="view" data-id="'+esc(it.id)+'">Ракурсы</button><button class="btn" type="button" data-k="info" data-id="'+esc(it.id)+'">Считать скриншот</button><button class="btn btn-primary" type="button" data-k="try" data-id="'+esc(it.id)+'">Примерить</button><button class="btn" type="button" data-k="del" data-id="'+esc(it.id)+'">Удалить</button></div></div></article>';
+      '<p class="mono">'+(it.views||[]).length+' / 3 · '+(it.bytes/1048576).toFixed(2)+' MB</p><div class="row"><button class="btn" type="button" data-k="view" data-id="'+esc(it.id)+'">Ракурсы</button><button class="btn" type="button" data-k="info" data-id="'+esc(it.id)+'">Данные</button><button class="btn btn-primary" type="button" data-k="try" data-id="'+esc(it.id)+'">Примерить</button><button class="btn" type="button" data-k="del" data-id="'+esc(it.id)+'">Удалить</button></div></div></article>';
   }).join('');
 }
-function imageFallback(e){var t=e.target;if(!t||t.tagName!=='IMG')return;var fallback=t.dataset.fallback;if(fallback&&t.dataset.triedFallback!=='1'&&t.src!==fallback){t.dataset.triedFallback='1';t.src=fallback;}else if(t.dataset.p&&t.src.indexOf('raw.githubusercontent')<0)t.src=rawUrl(t.dataset.p);}
+function imageFallback(e){var t=e.target;if(!t||t.tagName!=='IMG')return;var fallback=t.dataset.fallback;if(fallback&&t.dataset.triedFallback!=='1'&&t.src!==fallback){t.dataset.triedFallback='1';t.src=fallback;}}
 $('#catBody').addEventListener('error',imageFallback,true);
 $('#fchips').addEventListener('click',function(e){ var b=e.target.closest('.fchip'); if(!b) return; S.filter=b.dataset.f; renderCatalog(); });
 $('#catBody').addEventListener('click',function(e){
@@ -446,11 +476,11 @@ $('#catBody').addEventListener('click',function(e){
   if(b.dataset.k==='del'){
     if(b.dataset.armed!=='1'){
       b.dataset.armed='1'; b.textContent='Точно удалить?';
-      setTimeout(function(){ b.dataset.armed='0'; b.textContent='Удалить'; },3000);
+      b._deleteTimer=setTimeout(function(){ b.dataset.armed='0'; b.textContent='Удалить'; },3000);
       return;
     }
-    b.disabled=true;
-    Store.be.remove(it).then(function(){ toast('Часы удалены.'); if(S.pick===it.id) S.pick=null; }).catch(function(){ b.disabled=false; toast('Не удалось удалить. Попробуйте ещё раз.'); });
+    clearTimeout(b._deleteTimer);b.dataset.armed='0';b.disabled=true;
+    Store.be.remove(it).then(function(){ toast('Часы удалены.'); if(S.pick===it.id) S.pick=null; }).catch(function(){ b.disabled=false;b.textContent='Удалить';toast('Не удалось удалить. Попробуйте ещё раз.'); });
   }
 });
 
@@ -546,7 +576,7 @@ function openCut(file){
   im.onload=function(){
     CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null;
     ['inName','inBrand','inPrice','inLink'].forEach(function(id){ $('#'+id).value=''; });
-    $('#inName').value='Часы '+(Store.items.length+1);var target=Store.items.find(function(it){return it.id===EXTRA_TARGET;});if(target){$('#inName').value=target.name;$('#inBrand').value=target.brand;$('#inPrice').value=target.price;$('#inLink').value=target.link;}$('#extraRole').hidden=!target;$('#selViewRole').value=target&&EXTRA_INDEX!=null?target.views[EXTRA_INDEX].role:'angle';$('#existingViews').innerHTML=target?viewThumbs(target,false):'';
+    $('#selGender').value='u';$('#selStyle').value='dress';$('#inName').value='Часы '+(Store.items.length+1);var target=Store.items.find(function(it){return it.id===EXTRA_TARGET;});if(target){$('#inName').value=target.name;$('#inBrand').value=target.brand;$('#inPrice').value=target.price;$('#inLink').value=target.link;}$('#extraRole').hidden=!target;$('#selViewRole').value=target&&EXTRA_INDEX!=null?target.views[EXTRA_INDEX].role:'angle';$('#existingViews').innerHTML=target?viewThumbs(target,false):'';$('#cutTitle').textContent=target?'Новый ракурс':'Новые часы';['inName','inBrand','inPrice','inLink','selGender','selStyle'].forEach(function(id){$('#'+id).closest('.fld').hidden=!!target;});$('#readWatchInfo').hidden=!!target;$('#watchInfoStatus').hidden=!!target;
     show('edit'); cutCanvasSize(); drawCut(); runCut();
   };
   im.onerror=function(){ toast('Не удалось открыть фото. Попробуйте другое.'); };
@@ -565,19 +595,21 @@ $('#rngTol').addEventListener('change',runCut);
 $('#chkRound').addEventListener('change',function(e){ CUT.round=e.target.checked; runCut(); });
 $('#btnCutAll').addEventListener('click',function(){ if(!CUT.img) return; CUT.rect={x:0,y:0,w:CUT.img.width,h:CUT.img.height}; drawCut(); runCut(); });
 $('#btnCutBack').addEventListener('click',function(){ show('cat'); renderCatalog(); });
-$('#btnExportCollection').onclick=async function(){var button=this;button.disabled=true;try{var backup=await Store.be.exportCollection();var file=new File([JSON.stringify(backup)],'watch-collection-'+new Date().toISOString().slice(0,10)+'.json',{type:'application/json'});var url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},60000);toast('Каталог выгружен: фотографии, ракурсы и данные часов.');}catch(e){toast('Не удалось выгрузить каталог. Попробуйте ещё раз.');}finally{button.disabled=false;}};
+$('#btnExportCollection').onclick=async function(){var button=this;button.disabled=true;try{var backup=await Store.be.exportCollection();var file=new File([backup],'watch-collection-'+new Date().toISOString().slice(0,10)+'.json',{type:'application/json'});var url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},60000);toast('Каталог выгружен: фотографии, ракурсы и данные часов.');}catch(e){toast('Не удалось выгрузить каталог. Попробуйте ещё раз.');}finally{button.disabled=false;}};
+$('#btnImportCollection').onclick=function(){$('#fileImportCollection').click();};
+$('#fileImportCollection').onchange=async function(){var file=this.files[0];this.value='';if(!file)return;var button=$('#btnImportCollection');button.disabled=true;try{var data=JSON.parse(await file.text());var count=await Store.be.importCollection(data);toast(count?'Каталог загружен.':'Эти часы уже есть в каталоге.');}catch(e){toast(e instanceof SyntaxError?'Некорректный файл каталога.':e.message==='Некорректный файл каталога.'?e.message:saveErr(e));}finally{button.disabled=false;}};
 $('#btnCatAdd').addEventListener('click',function(){EXTRA_TARGET=null;EXTRA_INDEX=null;$('#fileCut').click();});
 $('#fileCut').addEventListener('change',function(e){ openCut(e.target.files[0]); e.target.value=''; });
 $('#btnCutSave').addEventListener('click',function(){
   if(!CUT.out||!Store.be||!Store.canWrite) return;
   var targetId=EXTRA_TARGET,targetIndex=EXTRA_INDEX,viewRole=$('#selViewRole').value;var btn=this, link=($('#inLink').value||'').trim();
-  if(link&&!safeLink(link)){ toast('Ссылка должна начинаться с http:// или https://'); return; }
+  if(!targetId&&link&&!safeLink(link)){ toast('Ссылка должна начинаться с http:// или https://'); return; }
   var meta={name:($('#inName').value||'').trim().slice(0,60)||'Часы',brand:($('#inBrand').value||'').trim().slice(0,40),price:($('#inPrice').value||'').trim().slice(0,30),gender:$('#selGender').value,style:$('#selStyle').value,link:link};
   btn.disabled=true; btn.textContent='Сохраняю…';
   var cutC=scaled(CUT.out,CUT.out.width,CUT.out.height,1200,true), thumbC=scaled(CUT.out,CUT.out.width,CUT.out.height,256,true);
   Promise.all([blobOf(cutC,'image/png'),blobOf(thumbC,'image/png')])
     .then(function(bs){return targetId?Store.be.addView(targetId,viewRole,bs[0],bs[1],targetIndex):Store.be.add(meta,bs[0],bs[1]);})
-    .then(function(){ toast('Часы сохранены в каталог.'); show('cat'); requestAnimationFrame(function(){renderCatalog();}); })
+    .then(function(){ toast(targetId?'Ракурс сохранён.':'Часы сохранены в каталог.'); show('cat'); requestAnimationFrame(function(){renderCatalog();}); })
     .catch(function(e){ toast(saveErr(e)); })
     .then(function(){ btn.disabled=!CUT.out; btn.textContent='Сохранить в каталог'; });
 });
@@ -654,11 +686,11 @@ function syncCtl(){
 }
 function renderPicker(){
   var h=Store.items.map(function(it){
-    return '<button type="button" class="pick" role="option" data-id="'+esc(it.id)+'" aria-selected="'+(it.id===S.pick)+'"><img alt="" src="'+esc(it.thumbUrl||it.cutUrl)+'" loading="lazy"><span>'+esc(it.name)+'</span></button>';
+    return '<button type="button" class="pick" role="option" data-id="'+esc(it.id)+'" aria-selected="'+(it.id===S.pick)+'"><img alt="" src="'+esc(it.thumbUrl||it.cutUrl)+'" loading="lazy"><span data-no-translate>'+esc(it.name)+'</span></button>';
   }).join('');
   $('#picker').innerHTML=h||'<p class="picker-empty">В каталоге пока нет часов.</p>';
 }
-function syncWatchNavigation(){var items=Store.items;$('#chooseWatch').innerHTML=items.map(function(it){return '<option value="'+esc(it.id)+'">'+esc([it.brand,it.name].filter(Boolean).join(' · '))+'</option>';}).join('');$('#chooseWatch').value=S.pick||'';$('#chooseWatch').disabled=!items.length;$('#previousWatch').disabled=items.length<2;$('#nextWatch').disabled=items.length<2;var index=items.findIndex(function(it){return it.id===S.pick;});$('#watchPosition').textContent=index>=0?(index+1)+' / '+items.length:'';}
+function syncWatchNavigation(){var items=Store.items;$('#chooseWatch').innerHTML=items.map(function(it){return '<option data-no-translate value="'+esc(it.id)+'">'+esc([it.brand,it.name].filter(Boolean).join(' · '))+'</option>';}).join('');$('#chooseWatch').value=S.pick||'';$('#chooseWatch').disabled=!items.length;$('#previousWatch').disabled=items.length<2;$('#nextWatch').disabled=items.length<2;var index=items.findIndex(function(it){return it.id===S.pick;});$('#watchPosition').textContent=index>=0?(index+1)+' / '+items.length:'';}
 function switchWatch(step){var items=Store.items;if(!items.length)return;var index=items.findIndex(function(it){return it.id===S.pick;});var next=index<0?0:(index+step+items.length)%items.length;setPick(items[next].id);}
 $('#previousWatch').onclick=function(){switchWatch(-1);};$('#nextWatch').onclick=function(){switchWatch(1);};$('#chooseWatch').onchange=function(){setPick(this.value);};
 function setPick(id){
@@ -676,10 +708,10 @@ function openViewManager(id){EXTRA_TARGET=id;EXTRA_INDEX=null;var it=Store.items
 $('#closeViewManager').onclick=function(){$('#viewManager').close();};
 $('#addManagedView').onclick=function(){EXTRA_INDEX=null;$('#viewManager').close();$('#fileCut').click();};
 $('#viewList').onclick=function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.replaceView!=null){EXTRA_INDEX=Number(b.dataset.replaceView);$('#viewManager').close();$('#fileCut').click();}else if(b.dataset.removeView!=null){b.disabled=true;Store.be.removeView(EXTRA_TARGET,Number(b.dataset.removeView)).then(function(){openViewManager(EXTRA_TARGET);}).catch(function(){b.disabled=false;toast('Не удалось сохранить.');});}};
-function openInfoManager(id){INFO_TARGET=id;var it=Store.items.find(function(x){return x.id===id;});if(!it)return;$('#cardInfoName').value=it.name;$('#cardInfoBrand').value=it.brand;$('#cardInfoPrice').value=it.price;$('#cardInfoStatus').textContent='Добавьте скриншот магазина с брендом, моделью и ценой.';$('#infoManager').showModal();$('#fileCardInfo').click();}
+function openInfoManager(id){INFO_TARGET=id;var it=Store.items.find(function(x){return x.id===id;});if(!it)return;$('#cardInfoName').value=it.name;$('#cardInfoBrand').value=it.brand;$('#cardInfoPrice').value=it.price;$('#cardInfoStatus').textContent='Добавьте скриншот магазина с брендом, моделью и ценой.';$('#infoManager').showModal();}
 $('#closeInfoManager').onclick=function(){$('#infoManager').close();};$('#chooseCardInfo').onclick=function(){$('#fileCardInfo').click();};
 $('#fileCardInfo').onchange=async function(){var file=this.files[0],id=INFO_TARGET;this.value='';if(!file)return;$('#chooseCardInfo').disabled=true;$('#saveCardInfo').disabled=true;$('#cardInfoStatus').textContent='Читаем данные со скриншота…';try{var fields=await WatchInfoOCR.read(file);if(INFO_TARGET!==id)return;[['cardInfoName','name'],['cardInfoBrand','brand'],['cardInfoPrice','price']].forEach(function(p){if(fields[p[1]])$('#'+p[0]).value=fields[p[1]];});$('#cardInfoStatus').textContent='Данные заполнены. Проверьте бренд, модель, цену и валюту перед сохранением.';}catch(e){$('#cardInfoStatus').textContent='Распознавание недоступно. Поля можно заполнить вручную.';}finally{$('#chooseCardInfo').disabled=false;$('#saveCardInfo').disabled=false;}};
-$('#saveCardInfo').onclick=function(){var it=Store.items.find(function(x){return x.id===INFO_TARGET;});if(!it)return;var meta=Object.assign({},it,{name:$('#cardInfoName').value.trim(),brand:$('#cardInfoBrand').value.trim(),price:$('#cardInfoPrice').value.trim()});this.disabled=true;Store.be.updateInfo(INFO_TARGET,meta).then(function(){$('#infoManager').close();}).catch(function(){toast('Не удалось сохранить.');}).then(function(){$('#saveCardInfo').disabled=false;});};
+$('#saveCardInfo').onclick=function(){var it=Store.items.find(function(x){return x.id===INFO_TARGET;});if(!it)return;var meta=Object.assign({},it,{name:$('#cardInfoName').value.trim()||it.name||'Часы',brand:$('#cardInfoBrand').value.trim(),price:$('#cardInfoPrice').value.trim()});this.disabled=true;Store.be.updateInfo(INFO_TARGET,meta).then(function(){$('#infoManager').close();}).catch(function(){toast('Не удалось сохранить.');}).then(function(){$('#saveCardInfo').disabled=false;});};
 function openTry(id){
   show('tryon'); renderPicker(); resetTx();
   $('#demoBadge').hidden=!!S.photo;
@@ -721,7 +753,7 @@ cv.addEventListener('pointermove',function(e){if(!ptrs[e.pointerId]||!gesture)re
 if(ps.length===1){t.x=g.tx.x+b.x-a.x;t.y=g.tx.y+b.y-a.y;}else{var a2=g.ps[1],b2=ps[1],old={x:(a.x+a2.x)/2,y:(a.y+a2.y)/2},now={x:(b.x+b2.x)/2,y:(b.y+b2.y)/2};var d=Math.hypot(a2.x-a.x,a2.y-a.y),ratio=d>1?Math.hypot(b2.x-b.x,b2.y-b.y)/d:1;var angle=wrapAngle((Math.atan2(b2.y-b.y,b2.x-b.x)-Math.atan2(a2.y-a.y,a2.x-a.x))*180/Math.PI);t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,g.tx.s*ratio));ratio=t.s/g.tx.s;var rad=angle*Math.PI/180,x=g.tx.x-old.x,y=g.tx.y-old.y;t.x=now.x+ratio*(x*Math.cos(rad)-y*Math.sin(rad));t.y=now.y+ratio*(x*Math.sin(rad)+y*Math.cos(rad));t.r=wrapAngle(g.tx.r+angle);}syncCtl();syncView();draw();});
 function endPtr(e){delete ptrs[e.pointerId];beginGesture();}
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);cv.addEventListener('lostpointercapture',endPtr);
-cv.addEventListener('wheel',function(e){e.preventDefault();var t=EDIT==='watch'?S.tx:VIEW,p=activePoint(cpt(e)),old=t.s;t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,old*Math.exp(-e.deltaY*.0015)));var k=t.s/old;t.x=p.x+(t.x-p.x)*k;t.y=p.y+(t.y-p.y)*k;syncCtl();syncView();draw();},{passive:false});
+cv.addEventListener('wheel',function(e){if(!e.ctrlKey)return;e.preventDefault();var t=EDIT==='watch'?S.tx:VIEW,p=activePoint(cpt(e)),old=t.s;t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,old*Math.exp(-e.deltaY*.0015)));var k=t.s/old;t.x=p.x+(t.x-p.x)*k;t.y=p.y+(t.y-p.y)*k;syncCtl();syncView();draw();},{passive:false});
 function syncView(){$('#sceneScale').value=Math.round(VIEW.s*100);$('#sceneScaleOut').textContent=VIEW.s.toFixed(1)+'×';$('#sceneRot').value=Math.round(VIEW.r);$('#sceneRotOut').textContent=Math.round(VIEW.r)+'°';}
 function resetView(){VIEW={x:CW/2,y:CH/2,s:1,r:0};syncView();}
 function editMode(mode){EDIT=mode;['sceneScale','sceneRot','resetScene'].forEach(function(id){$('#'+id).disabled=mode==='watch';});ptrs={};gesture=null;['Watch','Scene'].forEach(function(n){var b=$('#mode'+n),on=mode===(n==='Watch'?'watch':'scene');b.setAttribute('aria-pressed',on);b.classList.toggle('btn-primary',on);});}
@@ -748,7 +780,7 @@ if(window.parent!==window){
  document.body.dataset.embed='true'; document.body.style.minHeight='0'; document.documentElement.style.minHeight='0';
  function notifyHeight(){parent.postMessage({type:'watch-height',height:document.querySelector('.wrap').getBoundingClientRect().height},new URL(document.baseURI).origin);}
  new ResizeObserver(notifyHeight).observe(document.body);
- window.addEventListener('message',function(e){if(e.source!==parent||e.origin!==new URL(document.baseURI).origin)return; if(e.data.type==='watch-catalog'){show('cat');reloadList();} if(e.data.type==='watch-stop'){stopLive();fitting.hide();}});
+ window.addEventListener('message',function(e){if(e.source!==parent||e.origin!==new URL(document.baseURI).origin||!e.data||typeof e.data!=='object')return; if(e.data.type==='watch-catalog'){show('cat');reloadList();} if(e.data.type==='watch-stop'){stopLive();fitting.hide();}});
  parent.postMessage({type:'watch-ready'},new URL(document.baseURI).origin);
 }
 
@@ -760,6 +792,7 @@ initStore();
 </script>
 </body>
 </html>
+
 
 
 
