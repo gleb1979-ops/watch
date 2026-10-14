@@ -1,0 +1,16 @@
+/* One fitting workspace: the preview stays visible while controls scroll. */
+body.fitting-workspace{overflow:hidden}
+body.fitting-workspace .topbar,body.embedded-fitting .topbar{display:none!important}
+body.fitting-workspace #v-try,body.fitting-workspace #v-tryon{position:fixed;inset:0;z-index:100;background:var(--bg);padding:12px; padding-bottom:max(12px,env(safe-area-inset-bottom));display:flex;flex-direction:column;overflow:hidden;width:100%;min-width:0}
+body.fitting-workspace .back{flex:0 0 auto;align-self:flex-start;min-height:40px;margin:0 0 8px}
+body.fitting-workspace .try-grid{flex:1;min-height:0;min-width:0;width:100%;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);grid-template-rows:minmax(0,1fr);gap:18px}
+body.fitting-workspace .stage{position:relative!important;top:auto!important;width:100%!important;height:100%;max-width:none!important;margin:0!important;min-height:0;min-width:0;display:flex;justify-content:center;align-items:center;background:#202624;overflow:hidden}
+body.fitting-workspace .stage canvas{display:block;flex:none;max-width:100%;max-height:none;aspect-ratio:3/4;object-fit:initial;touch-action:none}
+body.fitting-workspace .panel{height:100%;min-height:0;min-width:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;-webkit-overflow-scrolling:touch;padding:4px 8px 24px}
+body.fitting-workspace .panel>*{flex-shrink:0}
+body.fitting-workspace .stage-expand{display:none}
+body.embedded-fitting{overflow:hidden}
+body.embedded-fitting #v-catalog{position:fixed;inset:0;z-index:100;background:var(--bg);width:100%;height:100dvh}
+body.embedded-fitting #catalogFrame{width:100%!important;height:100%!important;min-height:0!important}
+@media(max-width:899px){body.fitting-workspace .try-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.05fr) minmax(0,1fr);gap:10px}body.fitting-workspace .panel{border-top:1px solid var(--line);padding:10px 4px 24px}body.fitting-workspace .ctl{grid-template-columns:100px minmax(0,1fr) 44px}}
+@media(max-height:500px) and (orientation:landscape){body.fitting-workspace .try-grid{grid-template-columns:minmax(0,1.2fr) minmax(240px,1fr);grid-template-rows:minmax(0,1fr)}}
