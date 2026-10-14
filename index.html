@@ -257,7 +257,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 <button class="btn btn-primary" id="autoFit" type="button">Автоматическая посадка</button><button class="btn" id="markWrist" type="button">Указать запястье</button><p class="hint" id="autoFitStatus" aria-live="polite">Загрузите фото руки — свет и тень настроятся автоматически. Затем переместите часы на запястье.</p><details class="photo-fit"><summary>Точная настройка</summary>
 <p class="hint">Автоматическая настройка уже применена. Здесь можно вручную уточнить результат.</p>
 <div class="ctl"><label for="fitWidth">Ширина часов</label><input id="fitWidth" type="range" min="35" max="150" value="100"><output id="fitWidthOut">100%</output></div>
-<div class="ctl"><label for="fitHeight">Высота часов</label><input id="fitHeight" type="range" min="50" max="140" value="100"><output id="fitHeightOut">100%</output></div><div class="ctl"><label for="fitCurve">Изгиб браслета</label><input id="fitCurve" type="range" min="0" max="80" value="25"><output id="fitCurveOut">25%</output></div><div class="ctl"><label for="fitPerspective">Перспектива</label><input id="fitPerspective" type="range" min="-45" max="45" value="0"><output id="fitPerspectiveOut">0%</output></div><div class="ctl"><label for="fitLight">Яркость</label><input id="fitLight" type="range" min="65" max="130" value="100"><output id="fitLightOut">100%</output></div><div class="ctl"><label for="fitSlant">Наклон часов</label><input id="fitSlant" type="range" min="-35" max="35" value="0"><output id="fitSlantOut">0°</output></div>
+<div class="ctl"><label for="fitHeight">Высота часов</label><input id="fitHeight" type="range" min="50" max="140" value="100"><output id="fitHeightOut">100%</output></div><div class="ctl"><label for="fitBandwidth">Ширина браслета</label><input id="fitBandwidth" type="range" min="55" max="145" value="94"><output id="fitBandwidthOut">94%</output></div><div class="ctl"><label for="fitBandlength">Длина браслета</label><input id="fitBandlength" type="range" min="50" max="150" value="88"><output id="fitBandlengthOut">88%</output></div><div class="ctl"><label for="fitCurve">Изгиб браслета</label><input id="fitCurve" type="range" min="0" max="80" value="25"><output id="fitCurveOut">25%</output></div><div class="ctl"><label for="fitPerspective">Перспектива</label><input id="fitPerspective" type="range" min="-45" max="45" value="0"><output id="fitPerspectiveOut">0%</output></div><div class="ctl"><label for="fitLight">Яркость</label><input id="fitLight" type="range" min="65" max="130" value="100"><output id="fitLightOut">100%</output></div><div class="ctl"><label for="fitSlant">Наклон часов</label><input id="fitSlant" type="range" min="-35" max="35" value="0"><output id="fitSlantOut">0°</output></div>
 <div class="ctl"><label for="fitShadow">Тень на руке</label><input id="fitShadow" type="range" min="0" max="70" value="25"><output id="fitShadowOut">25%</output></div>
 <button class="btn" id="fitReset" type="button">Сбросить посадку</button>
 <p class="hint">Поворот общей фотографии сохраняет положение часов на руке. Это фотографическая примерка; вид сбоку не создаётся автоматически.</p></details>
@@ -747,7 +747,7 @@ V.result.addEventListener('click',function(e){
 });
 
 /* Примерка */
-var FIT={width:100,height:100,curve:25,perspective:0,light:100,slant:0,shadow:25};
+var FIT={width:100,height:100,bandwidth:100,bandlength:100,curve:25,perspective:0,light:100,slant:0,shadow:25};
 var VIEW={x:450,y:600,s:1,r:0},EDIT='watch',WATCH_VISIBLE=true;
 var cv=$('#cv'), ctx=cv.getContext?cv.getContext('2d'):null, CW=900, CH=1200, PX=2;
 var imgs={}, dlCap=null;
@@ -769,7 +769,7 @@ async function recognizeWrist(){
   finally{if(request===wristRequest)$('#autoFit').disabled=false;}
 }
 var AUTO_FIT=true, autoSample=null;
-function syncFitControls(){['Width','Height','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=Math.round(FIT[n.toLowerCase()])+(n==='Slant'?'°':'%');});}
+function syncFitControls(){['Width','Height','Bandwidth','Bandlength','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=Math.round(FIT[n.toLowerCase()])+(n==='Slant'?'°':'%');});}
 function sampleHand(){
   if(!S.photo)return null;
   if(!autoSample){autoSample=document.createElement('canvas');autoSample.width=225;autoSample.height=300;var c=autoSample.getContext('2d');c.scale(.25,.25);drawCover(c,S.photo);}
@@ -782,7 +782,7 @@ function sampleHand(){
 }
 function applyAutoFit(){
   AUTO_FIT=true;var a=sampleHand();
-  FIT={width:92,height:100,curve:35,perspective:0,light:a?Math.round(Math.max(78,Math.min(112,90+(a.light-140)*.16))):100,slant:0,shadow:a?Math.round(Math.max(16,Math.min(38,20+a.contrast*.14))):25};
+  FIT={width:100,height:100,bandwidth:94,bandlength:88,curve:35,perspective:0,light:a?Math.round(Math.max(78,Math.min(112,90+(a.light-140)*.16))):100,slant:0,shadow:a?Math.round(Math.max(16,Math.min(38,20+a.contrast*.14))):25};
   syncFitControls();$('#autoFitStatus').textContent=S.photo?'Свет, тень и изгиб настроены. Переместите часы на запястье; размер можно уточнить двумя пальцами.':'Загрузите фото руки для автоматической настройки.';draw();
 }
 function refreshAutoLight(){if(!AUTO_FIT||!S.photo)return;var a=sampleHand();if(a){FIT.light=Math.round(Math.max(78,Math.min(112,90+(a.light-140)*.16)));FIT.shadow=Math.round(Math.max(16,Math.min(38,20+a.contrast*.14)));syncFitControls();}}
@@ -849,7 +849,7 @@ $('#btnShot').addEventListener('click',function(){
   if(!LIVE.on) return;
   var c=document.createElement('canvas'); c.width=CW*PX; c.height=CH*PX;
   var x=c.getContext('2d'); x.setTransform(PX,0,0,PX,0,0); drawCover(x,vid,LIVE.face==='user');
-  var im=new Image(); im.onload=function(){ S.photo=im; stopLive(); draw(); toast('Кадр снят. Перетащите часы на запястье.'); };
+  var im=new Image(); im.onload=function(){ S.photo=im; stopLive();autoSample=null;wristAnchor=null;resetView();resetTx();editMode('watch');applyAutoFit();recognizeWrist();draw();toast('Кадр снят. Подбираем посадку часов.'); };
   im.src=c.toDataURL('image/jpeg',.95);
 });
 function constrainWatch(){S.tx.x=Math.max(35,Math.min(CW-35,S.tx.x));S.tx.y=Math.max(35,Math.min(CH-35,S.tx.y));}
@@ -873,10 +873,12 @@ function draw(){
   ctx.shadowColor='rgba(20,12,7,'+(FIT.shadow/100)+')';ctx.shadowBlur=6;ctx.shadowOffsetX=1;ctx.shadowOffsetY=3;
   for(var sy=0;sy<layer.height;sy+=4){
     var sh=Math.min(4,layer.height-sy),y=(sy+sh/2)/layer.height*2-1;
-    var end=Math.max(0,(Math.abs(y)-.38)/.62),taper=1-bend*end*end*.48;
+    var end=Math.max(0,(Math.abs(y)-.38)/.62),blend=Math.min(1,end*4),taper=(1-bend*end*end*.48)*(1+(FIT.bandwidth/100-1)*blend);
     var width=ww*taper*(1+perspective*y);
-    var yy=(hh/2)*(y-bend*y*y*y*.18);
-    var dy=hh/layer.height*sh*(1-bend*3*y*y*.18)+.35;
+    var stretch=FIT.bandlength/100,ay=Math.abs(y),sign=y<0?-1:1;
+    var mapped=sign*(ay<=.38?ay:.38+(ay-.38)*stretch);
+    var yy=(hh/2)*(mapped-bend*mapped*mapped*mapped*.18);
+    var dy=hh/layer.height*sh*(ay<=.38?1:stretch)*(1-bend*3*mapped*mapped*.18)+.35;
     ctx.drawImage(layer,0,sy,layer.width,sh,-width/2,yy-dy/2,width,dy);
   }
   ctx.filter='none';
@@ -951,10 +953,10 @@ $('#fileCam').addEventListener('change',function(e){ loadPhoto(e.target.files[0]
 $('#fileGal').addEventListener('change',function(e){ loadPhoto(e.target.files[0]); e.target.value=''; });
 $('#btnReset').addEventListener('click',function(){ resetTx(); draw(); });
 
-['Width','Height','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){AUTO_FIT=false;FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
+['Width','Height','Bandwidth','Bandlength','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){AUTO_FIT=false;FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
 $('#autoFit').onclick=function(){applyAutoFit();recognizeWrist();};
 $('#markWrist').onclick=function(){if(!S.photo){toast('Сначала загрузите фото руки.');return;}wristRequest++;$('#autoFit').disabled=false;editMode('watch');wristMarks=[];$('#autoFitStatus').textContent='Коснитесь двух противоположных краёв запястья там, где будет браслет. Повторное нажатие начинает заново.';};
-$('#fitReset').addEventListener('click',function(){FIT={width:100,height:100,curve:25,perspective:0,light:100,slant:0,shadow:25};['Width','Height','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
+$('#fitReset').addEventListener('click',function(){FIT={width:100,height:100,bandwidth:100,bandlength:100,curve:25,perspective:0,light:100,slant:0,shadow:25};['Width','Height','Bandwidth','Bandlength','Curve','Perspective','Light','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
 
 $('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; syncCtl(); draw(); });
 $('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; syncCtl(); draw(); });
