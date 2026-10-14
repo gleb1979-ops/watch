@@ -18,7 +18,8 @@ function load(){
  if(!library)library=new Promise(function(resolve,reject){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';s.onload=function(){resolve(window.Tesseract);};s.onerror=reject;document.head.appendChild(s);}).catch(function(e){library=null;throw e;});
  return library;
 }
-window.WatchInfoOCR={parse:parse};
+async function read(file){var w;try{var api=await load();w=await api.createWorker('eng');var result=await w.recognize(file);return parse(result.data.text);}finally{if(w)await w.terminate().catch(function(){});}}
+window.WatchInfoOCR={parse:parse,read:read};
 function init(){
  var btn=document.querySelector('#readWatchInfo'),file=document.querySelector('#fileWatchInfo'),status=document.querySelector('#watchInfoStatus');if(!btn)return;
  btn.onclick=function(){file.click();};
