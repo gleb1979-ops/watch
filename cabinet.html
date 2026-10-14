@@ -366,7 +366,7 @@ function localBackend(){
  req.onsuccess=function(){var old=urls;urls=[];
  Promise.all(req.result.sort(function(a,b){return b.at-a.at;}).map(function(row){
   return Promise.all([{role:'front',blob:row.cutBlob,thumb:row.thumbBlob}].concat(row.views||[]).map(function(v){
-   var u=url(v.blob);return preview(v).then(function(thumb){return {role:v.role,cutUrl:u,thumbUrl:thumb};});
+   var u=url(v.blob);return preview(v).then(function(thumb){return {role:v.role,cutUrl:u,thumbUrl:thumb};}).catch(function(){return {role:v.role,cutUrl:u,thumbUrl:'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect width="128" height="128" fill="%23202624"/%3E%3C/svg%3E',error:true};});
   })).then(function(views){return Object.assign(pickFields(row),{id:row.id,at:row.at,views:views,cutUrl:views[0].cutUrl,photoUrl:views[0].cutUrl,thumbUrl:views[0].thumbUrl,bytes:row.cutBlob.size+(row.thumbBlob?row.thumbBlob.size:0)+(row.views||[]).reduce(function(n,v){return n+v.blob.size+(v.thumb?v.thumb.size:0);},0)});});
  })).then(function(items){setTimeout(function(){old.forEach(function(u){URL.revokeObjectURL(u);});},20000);resolve(items);},reject);
  };req.onerror=function(){reject(req.error);};
@@ -430,7 +430,7 @@ function renderCatalog(){
       '<div class="cat-meta">'+(it.brand?'<span>'+esc(it.brand)+'</span>':'')+'<span>'+esc(GEN_N[it.gender])+'</span>'+(it.style&&STYLE_N[it.style]?'<span>'+esc(STYLE_N[it.style])+'</span>':'')+'</div>'+
       (it.price?'<p class="price">'+esc(it.price)+'</p>':'')+
       (lk?'<a class="cat-link" href="'+esc(lk)+'" target="_blank" rel="noopener">Страница товара</a>':'')+
-      '<p class="mono">'+(it.views||[]).length+' / 3 · '+(it.bytes/1048576).toFixed(2)+' MB</p><div class="row"><button class="btn" type="button" data-k="view" data-id="'+esc(it.id)+'" '+((it.views||[]).length>=3?'disabled':'')+'>Добавить ракурс</button><button class="btn btn-primary" type="button" data-k="try" data-id="'+esc(it.id)+'">Примерить</button>'+(Store.canWrite?'<button class="btn" type="button" data-k="del" data-id="'+esc(it.id)+'">Удалить</button>':'')+'</div></div></article>';
+      (it.views&&it.views[0].error?'<p class="hint">Не удалось открыть фото. Попробуйте другое.</p>':'')+'<p class="mono">'+(it.views||[]).length+' / 3 · '+(it.bytes/1048576).toFixed(2)+' MB</p><div class="row"><button class="btn" type="button" data-k="view" data-id="'+esc(it.id)+'" '+((it.views||[]).length>=3?'disabled':'')+'>Добавить ракурс</button><button class="btn btn-primary" type="button" data-k="try" data-id="'+esc(it.id)+'">Примерить</button>'+(Store.canWrite?'<button class="btn" type="button" data-k="del" data-id="'+esc(it.id)+'">Удалить</button>':'')+'</div></div></article>';
   }).join('');
 }
 function imageFallback(e){var t=e.target;if(!t||t.tagName!=='IMG')return;var fallback=t.dataset.fallback;if(fallback&&t.dataset.triedFallback!=='1'&&t.src!==fallback){t.dataset.triedFallback='1';t.src=fallback;}else if(t.dataset.p&&t.src.indexOf('raw.githubusercontent')<0)t.src=rawUrl(t.dataset.p);}
