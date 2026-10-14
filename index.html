@@ -179,8 +179,9 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 @media(prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover{transform:none}}
 
 .language-picker{display:inline-flex;gap:3px;align-items:center;direction:ltr}.language-picker button{background:transparent;border:1px solid var(--line);border-radius:5px;color:var(--muted);font:inherit;font-size:.75rem;min-height:40px;padding:7px 10px;cursor:pointer}.language-picker button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}[dir="rtl"] .opt{text-align:right;align-items:flex-start}[dir="rtl"] .cal li{border-left-width:1px;border-right-width:4px}[dir="rtl"] .ctl output{text-align:left}[dir="rtl"] .hero h1{font-family:var(--f-display);letter-spacing:-.015em}[dir="rtl"] .track{direction:ltr}[dir="rtl"] .brand{direction:ltr}[dir="rtl"] .badge{left:auto;right:10px}.cat-pic img{object-fit:contain}.form-note{padding:14px;border:1px solid var(--line);border-radius:8px;margin-bottom:20px;color:var(--muted);font-size:.85rem}body[data-embed="true"] .language-picker{display:none}
+.photo-fit{border:1px solid var(--line);border-radius:10px;padding:14px}.photo-fit summary{cursor:pointer;font-weight:600}.photo-fit .ctl{margin-block:12px}.photo-fit .hint{margin-block:10px}
 </style>
-<script src="locale.js?v=20261014c" defer></script></head>
+<script src="locale.js?v=20261014d" defer></script></head>
 <body>
 
 <div class="wrap">
@@ -245,6 +246,13 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 <div class="ctl"><label for="sceneRot">Поворот фото</label><input id="sceneRot" type="range" min="-180" max="180" value="0"><output id="sceneRotOut">0°</output></div>
 <button class="btn" id="resetScene" type="button">Сбросить фото</button>
 <p class="hint">Выберите режим: один палец перемещает, два — приближают и поворачивают. В режиме «Рука + часы» часы остаются на запястье.</p>
+<details class="photo-fit" open><summary>Посадка часов на фото</summary>
+<p class="hint">Загрузите фото своей руки без часов. Сначала подгоните часы в режиме «Часы», затем выберите «Рука + часы» для совместного поворота и приближения.</p>
+<div class="ctl"><label for="fitWidth">Ширина часов</label><input id="fitWidth" type="range" min="55" max="130" value="100"><output id="fitWidthOut">100%</output></div>
+<div class="ctl"><label for="fitSlant">Наклон часов</label><input id="fitSlant" type="range" min="-35" max="35" value="0"><output id="fitSlantOut">0°</output></div>
+<div class="ctl"><label for="fitShadow">Тень на руке</label><input id="fitShadow" type="range" min="0" max="70" value="25"><output id="fitShadowOut">25%</output></div>
+<button class="btn" id="fitReset" type="button">Сбросить посадку</button>
+<p class="hint">Поворот общей фотографии сохраняет положение часов на руке. Это фотографическая примерка; вид сбоку не создаётся автоматически.</p></details>
 <div class="ctl"><label for="rngScale">Размер</label><input id="rngScale" type="range" min="40" max="320" value="150"><output id="outScale">1.5×</output></div>
           <div class="ctl"><label for="rngRot">Поворот</label><input id="rngRot" type="range" min="-180" max="180" value="0"><output id="outRot">0°</output></div>
           <div class="row">
@@ -594,7 +602,7 @@ function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&am
 
 var catalogFrame=$('#catalogFrame'),catalogPath='',catalogReady=false;
 function catalogMessage(){if(catalogReady)catalogFrame.contentWindow.postMessage({type:'watch-language',language:document.documentElement.lang},location.origin);}
-function openCatalog(){show('catalog');var path=location.hash==='#cabinet'?'cabinet.html':'catalog.html';if(catalogPath!==path){catalogReady=false;catalogPath=path;catalogFrame.src=path+'?v=20261014c';}else{catalogFrame.contentWindow.postMessage({type:'watch-catalog'},location.origin);catalogMessage();}}
+function openCatalog(){show('catalog');var path=location.hash==='#cabinet'?'cabinet.html':'catalog.html';if(catalogPath!==path){catalogReady=false;catalogPath=path;catalogFrame.src=path+'?v=20261014d';}else{catalogFrame.contentWindow.postMessage({type:'watch-catalog'},location.origin);catalogMessage();}}
 function route(){var h=location.hash;document.querySelectorAll('.site-nav a').forEach(function(a){a.setAttribute('aria-current',a.hash===(h||'#home')?'page':'false');});if(h==='#catalog'||h==='#cabinet')openCatalog();else if(h==='#quiz')start();else show('intro');}
 window.addEventListener('message',function(e){if(e.origin!==location.origin||e.source!==catalogFrame.contentWindow)return;if(e.data.type==='watch-height'){catalogFrame.style.height=Math.max(500,Math.min(50000,Number(e.data.height)+24))+'px';}if(e.data.type==='watch-ready'){catalogReady=true;catalogMessage();}});
 window.addEventListener('watch-language-change',catalogMessage);
@@ -731,6 +739,7 @@ V.result.addEventListener('click',function(e){
 });
 
 /* Примерка */
+var FIT={width:100,slant:0,shadow:25};
 var VIEW={x:450,y:600,s:1,r:0},EDIT='watch',WATCH_VISIBLE=true;
 var cv=$('#cv'), ctx=cv.getContext?cv.getContext('2d'):null, CW=900, CH=1200, PX=2;
 var imgs={}, dlCap=null;
@@ -766,7 +775,7 @@ function drawSleeve(c){
 var vid=$('#vid'), LIVE={on:false,stream:null,face:'environment',raf:0,request:0};
 function drawCover(c,im,mirror){
   var iw=im.videoWidth||im.width, ih=im.videoHeight||im.height; if(!iw||!ih) return;
-  var s=Math.max(CW/iw,CH/ih), w=iw*s, h=ih*s;
+  var s=(im===S.photo?Math.min(CW/iw,CH/ih):Math.max(CW/iw,CH/ih)), w=iw*s, h=ih*s;
   if(mirror){ c.save(); c.translate(CW,0); c.scale(-1,1); }
   c.drawImage(im,(CW-w)/2,(CH-h)/2,w,h);
   if(mirror) c.restore();
@@ -810,7 +819,8 @@ function draw(){
   var e=wImg(w); if(!e.ok){ctx.restore();return;}
   ctx.save();
   ctx.translate(S.tx.x,S.tx.y); ctx.rotate(S.tx.r*Math.PI/180); ctx.scale(S.tx.s,S.tx.s);
-  ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=14; ctx.shadowOffsetY=5;
+  ctx.transform(FIT.width/100,0,Math.tan(FIT.slant*Math.PI/180),1,0,0);
+  ctx.shadowColor='rgba(20,12,7,'+(FIT.shadow/100)+')';ctx.shadowBlur=5;ctx.shadowOffsetX=1;ctx.shadowOffsetY=3;
   if(w.cut){ var cw=200, ch=200*w.cut.height/w.cut.width; ctx.drawImage(e.img,-cw/2,-ch/2,cw,ch); }
   else ctx.drawImage(e.img,-CX,-CY,VW,VH);
   ctx.restore();ctx.restore();
@@ -872,7 +882,7 @@ function loadPhoto(file){
   if(!file) return;
   var url=URL.createObjectURL(file), im=new Image();
   im.onload=function(){
-    S.photo=im; $('#demoBadge').hidden=true; resetView();resetTx(); draw();
+    S.photo=im; $('#demoBadge').hidden=true; WATCH_VISIBLE=true;$('#toggleWatch').textContent='Скрыть часы';$('#toggleWatch').setAttribute('aria-pressed','false');editMode('watch');resetView();resetTx(); draw();
     toast('Фото загружено. Перетащите часы на запястье.');
   };
   im.onerror=function(){ toast('Не удалось открыть фото. Попробуйте другое.'); };
@@ -883,6 +893,10 @@ $('#btnGal').addEventListener('click',function(){ $('#fileGal').click(); });
 $('#fileCam').addEventListener('change',function(e){ loadPhoto(e.target.files[0]); e.target.value=''; });
 $('#fileGal').addEventListener('change',function(e){ loadPhoto(e.target.files[0]); e.target.value=''; });
 $('#btnReset').addEventListener('click',function(){ resetTx(); draw(); });
+
+['Width','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
+$('#fitReset').addEventListener('click',function(){FIT={width:100,slant:0,shadow:25};['Width','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
+
 $('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; syncCtl(); draw(); });
 $('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; syncCtl(); draw(); });
 
@@ -1043,6 +1057,7 @@ route();
 </script>
 </body>
 </html>
+
 
 
 
