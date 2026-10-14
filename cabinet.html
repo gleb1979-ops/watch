@@ -209,7 +209,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px}dialog::backdrop{background:#000a}dialog h2{margin-bottom:12px}dialog .row{margin-top:16px}.view-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-block:16px}.view-card{min-width:0;border:1px solid var(--line);border-radius:8px;padding:8px}.view-card img{width:100%;height:100px;object-fit:contain}.view-card .btn{width:100%;min-height:40px;padding:6px;font-size:.8rem}.view-card p{font-size:.8rem}</style>
 <script src="watch-fit.js?v=20261014f"></script>
 <script src="wrist.js?v=20261014a" defer></script>
-<script src="locale.js?v=20261014m" defer></script>
+<script src="locale.js?v=20261014n" defer></script>
 <script src="watch-real.js?v=20261015-real2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014g"><script src="fitting-workspace.js?v=20261014g" defer></script><script src="watch-info-ocr.js?v=20261014m" defer></script></head>
 <body>
 
@@ -223,7 +223,7 @@ dialog{width:min(94vw,640px);max-height:85dvh;overflow:auto;background:var(--sur
     <section id="v-cat">
       <div class="cat-head">
         <h1 class="cut-title">Мои часы</h1>
-        <button class="btn btn-primary" id="btnCatAdd" type="button" hidden>Добавить часы</button>
+        <button class="btn btn-primary" id="btnCatAdd" type="button" hidden>Добавить часы</button><button class="btn" id="btnExportCollection" type="button">Выгрузить весь каталог</button>
       </div>
       <p class="hint catalog-intro">Ваши часы хранятся только в этом браузере. Они не публикуются в общем каталоге. Очистка данных браузера удалит коллекцию.</p><div class="catalog-tools"><div class="fld"><label for="catSearch">Поиск по названию и бренду</label><input id="catSearch" type="search" placeholder="Например, Seiko"></div><div class="fld"><label for="catSort">Порядок</label><select id="catSort"><option value="new">Сначала новые</option><option value="name">По названию</option><option value="brand">По бренду</option></select></div></div><p class="hint" id="catStatus" role="status">Загружаю каталог…</p>
       <div class="fchips" id="fchips" role="group" aria-label="Фильтр по аудитории">
@@ -372,9 +372,10 @@ function localBackend(){
  })).then(function(items){setTimeout(function(){old.forEach(function(u){URL.revokeObjectURL(u);});},20000);resolve(items);},reject);
  };req.onerror=function(){reject(req.error);};
  });});}
+ function exportCollection(){return dbPromise.then(function(db){return new Promise(function(resolve,reject){var r=db.transaction('watches','readonly').objectStore('watches').getAll();r.onsuccess=function(){resolve(r.result);};r.onerror=function(){reject(r.error);};});}).then(async function(rows){var watches=[];for(var row of rows){var views=[];for(var v of (row.views||[])){views.push({role:v.role,image:await dataImage(v.blob),thumbnail:v.thumb?await dataImage(v.thumb):null});}watches.push(Object.assign(pickFields(row),{id:row.id,at:row.at,main:{role:row.frontRole||'front',image:await dataImage(row.cutBlob),thumbnail:row.thumbBlob?await dataImage(row.thumbBlob):null},views:views}));}return {type:'watch-collection',version:1,exportedAt:new Date().toISOString(),watches:watches};});}
  function emit(){return load().then(function(items){subs.forEach(function(cb){cb(items);});});}
  function mutate(fn){return dbPromise.then(function(db){return new Promise(function(resolve,reject){var tx=db.transaction('watches','readwrite');fn(tx.objectStore('watches'),tx);tx.oncomplete=resolve;tx.onerror=function(){reject(tx.error);};tx.onabort=function(){reject(tx.error||new Error('Не удалось сохранить.'));};});}).then(emit);}
- return {watch:function(cb,err){if(subs.indexOf(cb)<0)subs.push(cb);emit().catch(err);},add:function(meta,cut,thumb){return mutate(function(s){s.put(Object.assign(pickFields(meta),{id:'personal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),at:Date.now(),cutBlob:cut,thumbBlob:thumb,views:[]}));});},addView:function(id,role,blob,thumb,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row){tx.abort();return;}if(index===0){row.cutBlob=blob;row.thumbBlob=thumb;}else{row.views=row.views||[];if(index!=null)row.views[index-1]={role:role,blob:blob,thumb:thumb};else{if(row.views.length>=2){tx.abort();return;}row.views.push({role:role,blob:blob,thumb:thumb});}}s.put(row);};});},removeView:function(id,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row||index<1){tx.abort();return;}row.views=(row.views||[]).filter(function(_,i){return i!==index-1;});s.put(row);};});},updateInfo:function(id,meta){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){if(!r.result){tx.abort();return;}s.put(Object.assign(r.result,pickFields(meta)));};});},remove:function(item){return mutate(function(s){s.delete(item.id);});}};
+ return {exportCollection:exportCollection,watch:function(cb,err){if(subs.indexOf(cb)<0)subs.push(cb);emit().catch(err);},add:function(meta,cut,thumb){return mutate(function(s){s.put(Object.assign(pickFields(meta),{id:'personal-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,7),at:Date.now(),cutBlob:cut,thumbBlob:thumb,views:[]}));});},addView:function(id,role,blob,thumb,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row){tx.abort();return;}if(index===0){row.cutBlob=blob;row.thumbBlob=thumb;}else{row.views=row.views||[];if(index!=null)row.views[index-1]={role:role,blob:blob,thumb:thumb};else{if(row.views.length>=2){tx.abort();return;}row.views.push({role:role,blob:blob,thumb:thumb});}}s.put(row);};});},removeView:function(id,index){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){var row=r.result;if(!row||index<1){tx.abort();return;}row.views=(row.views||[]).filter(function(_,i){return i!==index-1;});s.put(row);};});},updateInfo:function(id,meta){return mutate(function(s,tx){var r=s.get(id);r.onsuccess=function(){if(!r.result){tx.abort();return;}s.put(Object.assign(r.result,pickFields(meta)));};});},remove:function(item){return mutate(function(s){s.delete(item.id);});}};
 }
 function rawUrl(path){return path;}
 var SW={},VIEW_INDEX=0,EXTRA_TARGET=null,EXTRA_INDEX=null,INFO_TARGET=null;
@@ -412,7 +413,7 @@ function reloadList(){Store.error=false;Store.ready=false;renderCatalog();Store.
 function safeLink(u){ return /^https?:\/\//i.test(u)?u:''; }
 function renderCatalog(){
   var el=$('#catBody'), st=$('#catStatus');
-  $('#btnCatAdd').hidden=!Store.canWrite;
+  $('#btnCatAdd').hidden=!Store.canWrite;$('#btnExportCollection').disabled=!Store.ready||!Store.items.length;
   if(!Store.ready){ st.textContent='Загружаю каталог…'; el.innerHTML=''; return; }
   if(Store.error){ st.textContent='Не удалось загрузить каталог. Проверьте соединение.'; el.innerHTML='<button class="btn" id="retryCatalog" type="button">Повторить загрузку</button>'; return; }
   else st.textContent='';
@@ -564,6 +565,7 @@ $('#rngTol').addEventListener('change',runCut);
 $('#chkRound').addEventListener('change',function(e){ CUT.round=e.target.checked; runCut(); });
 $('#btnCutAll').addEventListener('click',function(){ if(!CUT.img) return; CUT.rect={x:0,y:0,w:CUT.img.width,h:CUT.img.height}; drawCut(); runCut(); });
 $('#btnCutBack').addEventListener('click',function(){ show('cat'); renderCatalog(); });
+$('#btnExportCollection').onclick=async function(){var button=this;button.disabled=true;try{var backup=await Store.be.exportCollection();var file=new File([JSON.stringify(backup)],'watch-collection-'+new Date().toISOString().slice(0,10)+'.json',{type:'application/json'});var url=URL.createObjectURL(file),a=document.createElement('a');a.href=url;a.download=file.name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},60000);toast('Каталог выгружен: фотографии, ракурсы и данные часов.');}catch(e){toast('Не удалось выгрузить каталог. Попробуйте ещё раз.');}finally{button.disabled=false;}};
 $('#btnCatAdd').addEventListener('click',function(){EXTRA_TARGET=null;EXTRA_INDEX=null;$('#fileCut').click();});
 $('#fileCut').addEventListener('change',function(e){ openCut(e.target.files[0]); e.target.value=''; });
 $('#btnCutSave').addEventListener('click',function(){
