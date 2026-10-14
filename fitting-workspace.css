@@ -24,3 +24,10 @@ body.fitting-workspace .panel .photo-actions .btn{flex:1 1 140px;min-height:44px
 body.fitting-workspace .panel .photo-actions [hidden]{display:none!important}
 @media(max-width:899px){body.fitting-workspace .try-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1.2fr) minmax(0,1fr);gap:6px}body.fitting-workspace .panel{padding:8px 4px 32px}}
 @media(max-height:500px) and (orientation:landscape){body.fitting-workspace .try-grid{grid-template-columns:minmax(0,1.2fr) minmax(240px,1fr);grid-template-rows:minmax(0,1fr)}}
+
+
+/* Reserve a small scrollable area for controls, using the remaining height for the photo. */
+body.fitting-workspace #v-try,body.fitting-workspace #v-tryon{padding:0;padding-bottom:env(safe-area-inset-bottom)}
+body.fitting-workspace .back{margin:0 8px 4px;min-height:32px}
+body.fitting-workspace .stage{border-radius:0;border:0}
+body.fitting-workspace .panel{padding-inline:10px}
