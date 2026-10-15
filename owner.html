@@ -263,7 +263,14 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 
     <section id="v-owner" hidden>
       <button class="link back" id="btnOwnBack" type="button">← К каталогу</button>
-      <h2 class="cut-title">Вход владельца</h2><button class="btn" id="btnLogout" type="button" hidden>Выйти из аккаунта владельца</button>
+      <h2 class="cut-title">Кабинет владельца</h2>
+      <div id="ownerLogged" hidden style="margin:16px 0;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--surface)">
+        <p style="margin-bottom:12px">Вы вошли как владелец и можете изменять каталог.</p>
+        <label class="chk-row" style="font-weight:600;cursor:pointer"><input type="checkbox" id="rememberActive" style="width:22px;height:22px;accent-color:var(--accent)"> Запомнить вход на этом устройстве</label>
+        <p class="hint" style="margin-top:8px">Включайте только на личном устройстве. GitHub-токен хранится в браузере.</p>
+        <button class="btn btn-primary" type="button" id="ownerGoCatalog" style="margin-top:16px">Управлять часами</button>
+      </div>
+      <div id="ownerLoginForm"><button class="btn" id="btnLogout" type="button" hidden>Выйти из аккаунта владельца</button>
       <p class="hint">Добавлять и удалять часы может только владелец сайта. Для этого нужен личный токен GitHub. Он хранится в текущей сессии браузера и никуда не отправляется, кроме GitHub.</p>
       <ol class="hint" style="padding-left:1.2em;line-height:1.6">
         <li>Откройте <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">создание токена</a>.</li>
@@ -273,7 +280,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
         <li>Нажмите Generate token, скопируйте его и вставьте ниже.</li>
       </ol>
       <div class="fld"><label for="inToken">Токен</label><input id="inToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-      <label class="chk-row" style="margin:12px 0"><input type="checkbox" id="rememberOwner"> Запомнить вход на этом устройстве</label><p class="hint" style="margin-bottom:12px">На общем или чужом устройстве не включайте эту опцию: токен хранится в браузере и предоставляет доступ к изменению каталога.</p><div class="row"><button class="btn btn-primary" id="btnOwnSave" type="button">Войти</button></div>
+      <label class="chk-row" style="margin:12px 0"><input type="checkbox" id="rememberOwner"> Запомнить вход на этом устройстве</label><p class="hint" style="margin-bottom:12px">На общем или чужом устройстве не включайте эту опцию: токен хранится в браузере и предоставляет доступ к изменению каталога.</p><div class="row"><button class="btn btn-primary" id="btnOwnSave" type="button">Войти</button></div></div>
     </section>
 
     <section id="v-try" hidden>
@@ -452,15 +459,34 @@ function saveErr(e){
 }
 /* ---------- Вход владельца ---------- */
 function renderOwner(){
-  $('#btnLogout').hidden=!GH.token; var b=$('#btnOwner'); b.textContent=GH.token?'Владелец · выйти':'Вход владельца';
+  var logged=!!GH.token, persisted=false;
+  try{persisted=!!localStorage.getItem('watch_owner_token_persistent');}catch(e){}
+  $('#btnLogout').hidden=!logged;
+  $('#btnOwner').textContent=logged?'Кабинет владельца':'Вход владельца';
+  $('#ownerLogged').hidden=!logged;
+  $('#ownerLoginForm').hidden=logged;
+  $('#rememberActive').checked=persisted;
+  $('#rememberOwner').checked=persisted;
 }
-$('#btnOwner').addEventListener('click',function(){
-  if(GH.token){ GH.token=''; try{ sessionStorage.removeItem('watch_token'); localStorage.removeItem('watch_token'); localStorage.removeItem('watch_owner_token_persistent'); }catch(e){} Store.canWrite=false; renderOwner(); renderCatalog(); Store.be.watch&&reloadList(); toast('Вы вышли.'); return; }
-  show('owner');
+$('#rememberActive').addEventListener('change',function(){
+  if(!GH.token)return;
+  try{
+    if(this.checked){
+      localStorage.setItem('watch_owner_token_persistent',GH.token);
+      sessionStorage.removeItem('watch_token');
+    }else{
+      localStorage.removeItem('watch_owner_token_persistent');
+      sessionStorage.setItem('watch_token',GH.token);
+    }
+    renderOwner();
+    toast(this.checked?'Вход будет сохранён.':'Запоминание входа отключено.');
+  }catch(e){renderOwner();toast('Не удалось изменить сохранение входа.');}
 });
+$('#btnOwner').addEventListener('click',function(){renderOwner();show('owner');});
 function reloadList(){ Store.error=false; Store.ready=false; renderCatalog(); Store.be.watch(onItems,function(){ Store.ready=true; Store.error=true; renderCatalog(); }); }
 $('#btnLogout').addEventListener('click',function(){GH.token='';try{sessionStorage.removeItem('watch_token');localStorage.removeItem('watch_token');localStorage.removeItem('watch_owner_token_persistent');}catch(e){}Store.canWrite=false;renderOwner();show('cat');reloadList();toast('Вы вышли.');});
 $('#btnOwnBack').addEventListener('click',function(){ show('cat'); });
+$('#ownerGoCatalog').addEventListener('click',function(){show('cat');});
 $('#btnOwnSave').addEventListener('click',function(){
   var t=($('#inToken').value||'').trim(); if(!t){ toast('Вставьте токен.'); return; }
   var btn=this; btn.disabled=true; var old=GH.token; GH.token=t;
