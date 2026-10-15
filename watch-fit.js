@@ -23,7 +23,9 @@ window.WatchFit={create:function(o){
    // It is independent of how tightly the original watch image was cropped.
    var caseWidth=p?200*p.caseW:200;
    var wristWidth=Math.max(25,g.width);
-   var desired=wristWidth*(caseDiameter()/62);
+   // Calibrated against the detected palm-to-wrist estimate: the earlier 62mm
+   // reference systematically undersized watch cases on real wrist photos.
+   var desired=wristWidth*(caseDiameter()/50);
    tx.s=Math.max(.4,Math.min(3.2,desired/Math.max(40,caseWidth)));
   }
   o.sync();o.draw();
