@@ -270,7 +270,8 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
         <p class="hint" style="margin-top:8px">Включайте только на личном устройстве. GitHub-токен хранится в браузере.</p>
         <button class="btn btn-primary" type="button" id="ownerGoCatalog" style="margin-top:16px">Управлять часами</button>
       </div>
-      <div id="ownerLoginForm"><button class="btn" id="btnLogout" type="button" hidden>Выйти из аккаунта владельца</button>
+      <button class="btn" id="btnLogout" type="button" hidden style="margin:0 0 16px">Выйти / сменить токен</button>
+      <div id="ownerLoginForm">
       <p class="hint">Добавлять и удалять часы может только владелец сайта. Для этого нужен личный токен GitHub. Он хранится в текущей сессии браузера и никуда не отправляется, кроме GitHub.</p>
       <ol class="hint" style="padding-left:1.2em;line-height:1.6">
         <li>Откройте <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">создание токена</a>.</li>
@@ -508,7 +509,7 @@ $('#rememberActive').addEventListener('change',function(){
 });
 $('#btnOwner').addEventListener('click',function(){renderOwner();show('owner');});
 function reloadList(){ Store.error=false; Store.ready=false; renderCatalog(); Store.be.watch(onItems,function(){ Store.ready=true; Store.error=true; renderCatalog(); }); }
-$('#btnLogout').addEventListener('click',function(){GH.token='';try{sessionStorage.removeItem('watch_token');localStorage.removeItem('watch_token');localStorage.removeItem('watch_owner_token_persistent');}catch(e){}Store.canWrite=false;renderOwner();show('cat');reloadList();toast('Вы вышли.');});
+$('#btnLogout').addEventListener('click',function(){GH.token='';try{sessionStorage.removeItem('watch_token');localStorage.removeItem('watch_token');localStorage.removeItem('watch_owner_token_persistent');}catch(e){}Store.canWrite=false;renderOwner();show('owner');reloadList();toast('Вы вышли. Введите другой токен.');});
 $('#btnOwnBack').addEventListener('click',function(){ show('cat'); });
 $('#ownerGoCatalog').addEventListener('click',function(){show('cat');});
 $('#btnOwnSave').addEventListener('click',function(){
