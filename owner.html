@@ -250,7 +250,7 @@ html,body{max-width:100%;overflow-x:clip}
         <div class="row" style="margin:10px 0;align-items:center;flex-wrap:wrap">
           <button type="button" class="btn" id="eraseBackground" aria-pressed="false">Ластик фона: выкл.</button>
           <label for="eraseSize">Размер ластика</label><input id="eraseSize" type="range" min="12" max="95" value="38" style="max-width:140px">
-          <button type="button" class="btn" id="restorePixels">Восстановить часы</button><label for="editZoom">Увеличение</label><input id="editZoom" type="range" min="100" max="400" step="25" value="100" style="max-width:150px"><button type="button" class="btn" id="undoErase">Отменить мазок</button>
+          <button type="button" class="btn" id="panEditor">Перемещение</button><button type="button" class="btn" id="restorePixels">Восстановить часы</button><label for="editZoom">Увеличение</label><input id="editZoom" type="range" min="100" max="400" step="25" value="100" style="max-width:150px"><button type="button" class="btn" id="undoErase">Отменить мазок</button>
           <button type="button" class="btn" id="resetErase">Вернуть автообработку</button>
         </div>
         <div class="row" style="margin:10px 0"><button type="button" class="btn" id="previewDark">Тёмный фон</button><button type="button" class="btn" id="previewLight">Светлый фон</button><button type="button" class="btn" id="previewCheck">Шахматный фон</button></div><p class="fit" id="cutNote"></p>
@@ -662,7 +662,7 @@ function cutPixels(d,w,h,tol,round){
   }
   return x1<0?null:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
-var CUT={img:null,rect:null,sc:1,tol:45,round:false,out:null,drag:null,n:0,from:'tryon',quality:null,erase:false,restore:false,zoom:1,source:null,undo:[],erasing:false};
+var CUT={img:null,rect:null,sc:1,tol:45,round:false,out:null,drag:null,n:0,from:'tryon',quality:null,erase:false,restore:false,zoom:1,source:null,undo:[],erasing:false,panX:0,panY:0,pan:false,last:null,mask:null,original:null};
 function cutCanvasSize(){
   var im=CUT.img; CUT.sc=Math.min(1,1000/Math.max(im.width,im.height));
   var c=$('#cc'); c.width=Math.round(im.width*CUT.sc); c.height=Math.round(im.height*CUT.sc);
@@ -696,62 +696,75 @@ function inspectWatchImage(canvas){
 }
 function drawCutPreview(){
  if(!CUT.out)return;
- var pv=$('#cp'),x=pv.getContext('2d'),o=CUT.out,s=Math.min(pv.width/o.width,pv.height/o.height)*CUT.zoom;
- x.clearRect(0,0,pv.width,pv.height);x.imageSmoothingQuality='high';
- x.drawImage(o,(pv.width-o.width*s)/2,(pv.height-o.height*s)/2,o.width*s,o.height*s);
+ var p=$('#cp'),ctx=p.getContext('2d'),o=CUT.out;
+ var s=Math.min(p.width/o.width,p.height/o.height)*CUT.zoom;
+ ctx.clearRect(0,0,p.width,p.height);ctx.imageSmoothingQuality='high';
+ ctx.drawImage(o,(p.width-o.width*s)/2+CUT.panX,(p.height-o.height*s)/2+CUT.panY,o.width*s,o.height*s);
 }
-function editAt(e){
- if(!CUT.out||(!CUT.erase&&!CUT.restore))return;
- var p=$('#cp'),b=p.getBoundingClientRect(),o=CUT.out,s=Math.min(p.width/o.width,p.height/o.height)*CUT.zoom;
- var x=((e.clientX-b.left)*p.width/b.width-(p.width-o.width*s)/2)/s;
- var y=((e.clientY-b.top)*p.height/b.height-(p.height-o.height*s)/2)/s;
- if(x<0||y<0||x>=o.width||y>=o.height)return;
- var r=Math.max(3,(Number($('#eraseSize').value)||38)/s/2),ctx=o.getContext('2d');
- if(CUT.restore&&CUT.source){
-   var src=CUT.source.data,img=ctx.getImageData(0,0,o.width,o.height),out=img.data;
-   var xmin=Math.max(0,Math.floor(x-r)),xmax=Math.min(o.width-1,Math.ceil(x+r));
-   var ymin=Math.max(0,Math.floor(y-r)),ymax=Math.min(o.height-1,Math.ceil(y+r));
-   for(var yy=ymin;yy<=ymax;yy++)for(var xx=xmin;xx<=xmax;xx++){
-     if((xx-x)*(xx-x)+(yy-y)*(yy-y)>r*r)continue;
-     var k=(yy*o.width+xx)*4;for(var z=0;z<4;z++)out[k+z]=src[k+z];
-   }
-   ctx.putImageData(img,0,0);
- }else{
-   ctx.save();ctx.globalCompositeOperation='destination-out';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.restore();
- }
- drawCutPreview();
+function updateMaskedImage(){
+ if(!CUT.original||!CUT.mask||!CUT.out)return;
+ var pixels=CUT.out.getContext('2d').createImageData(CUT.out.width,CUT.out.height),d=pixels.data;
+ for(var i=0;i<CUT.mask.length;i++){var k=i*4;d[k]=CUT.original[k];d[k+1]=CUT.original[k+1];d[k+2]=CUT.original[k+2];d[k+3]=CUT.mask[i];}
+ CUT.out.getContext('2d').putImageData(pixels,0,0);drawCutPreview();
 }
 function setTool(which){
- CUT.erase=which==='erase';CUT.restore=which==='restore';CUT.erasing=false;
+ CUT.erase=which==='erase';CUT.restore=which==='restore';CUT.pan=which==='pan';CUT.erasing=false;
  $('#eraseBackground').textContent=CUT.erase?'Ластик фона: включён':'Ластик фона: выкл.';
  $('#eraseBackground').setAttribute('aria-pressed',String(CUT.erase));
  $('#restorePixels').setAttribute('aria-pressed',String(CUT.restore));
- $('#cp').style.touchAction=(CUT.erase||CUT.restore)?'none':'auto';
+ $('#panEditor').setAttribute('aria-pressed',String(CUT.pan));
+ $('#cp').style.touchAction='none';
+}
+function editAt(e){
+ if(!CUT.mask||(!CUT.erase&&!CUT.restore))return;
+ var p=$('#cp'),b=p.getBoundingClientRect(),o=CUT.out,s=Math.min(p.width/o.width,p.height/o.height)*CUT.zoom;
+ var x=((e.clientX-b.left)*p.width/b.width-(p.width-o.width*s)/2-CUT.panX)/s;
+ var y=((e.clientY-b.top)*p.height/b.height-(p.height-o.height*s)/2-CUT.panY)/s;
+ var radius=Math.max(2,(Number($('#eraseSize').value)||38)/(2*s));
+ var xmin=Math.max(0,Math.floor(x-radius)),xmax=Math.min(o.width-1,Math.ceil(x+radius));
+ var ymin=Math.max(0,Math.floor(y-radius)),ymax=Math.min(o.height-1,Math.ceil(y+radius));
+ for(var yy=ymin;yy<=ymax;yy++)for(var xx=xmin;xx<=xmax;xx++){
+  var ds=(xx-x)*(xx-x)+(yy-y)*(yy-y);if(ds>radius*radius)continue;
+  var i=yy*o.width+xx;
+  if(CUT.restore)CUT.mask[i]=CUT.source.data[i*4+3];
+  else CUT.mask[i]=0;
+ }
+ updateMaskedImage();
 }
 $('#eraseBackground').addEventListener('click',function(){setTool(CUT.erase?'none':'erase');});
 $('#restorePixels').addEventListener('click',function(){setTool(CUT.restore?'none':'restore');});
+$('#panEditor').addEventListener('click',function(){setTool(CUT.pan?'none':'pan');});
 $('#editZoom').addEventListener('input',function(){CUT.zoom=Number(this.value)/100;drawCutPreview();});
 $('#cp').addEventListener('pointerdown',function(e){
- if((!CUT.erase&&!CUT.restore)||!CUT.out)return;
- e.preventDefault();CUT.erasing=true;
- CUT.undo.push(CUT.out.getContext('2d').getImageData(0,0,CUT.out.width,CUT.out.height));
- if(CUT.undo.length>5)CUT.undo.shift();
- try{this.setPointerCapture(e.pointerId);}catch(err){}editAt(e);
+ if(!CUT.out)return;e.preventDefault();CUT.erasing=true;
+ CUT.last={x:e.clientX,y:e.clientY};
+ if(!CUT.pan&&(CUT.erase||CUT.restore)){
+  CUT.undo.push(new Uint8ClampedArray(CUT.mask));if(CUT.undo.length>5)CUT.undo.shift();editAt(e);
+ }
+ try{this.setPointerCapture(e.pointerId);}catch(err){}
 });
-$('#cp').addEventListener('pointermove',function(e){if(CUT.erasing){e.preventDefault();editAt(e);}});
+$('#cp').addEventListener('pointermove',function(e){
+ if(!CUT.erasing)return;e.preventDefault();
+ if(CUT.pan){
+  var b=this.getBoundingClientRect();
+  CUT.panX+=(e.clientX-CUT.last.x)*this.width/b.width;
+  CUT.panY+=(e.clientY-CUT.last.y)*this.height/b.height;
+  CUT.last={x:e.clientX,y:e.clientY};drawCutPreview();
+ }else editAt(e);
+});
 function endErase(){
  if(!CUT.erasing)return;CUT.erasing=false;
- CUT.quality=inspectWatchImage(CUT.out);$('#btnCutSave').disabled=!Store.canWrite||!CUT.quality.ok;
+ CUT.quality=inspectWatchImage(CUT.out);
+ $('#btnCutSave').disabled=!Store.canWrite||!CUT.quality.ok;
  $('#cutNote').textContent='Проверьте детали часов на тёмном фоне. '+CUT.quality.message;
 }
-$('#cp').addEventListener('pointerup',endErase);
-$('#cp').addEventListener('pointercancel',endErase);
+$('#cp').addEventListener('pointerup',endErase);$('#cp').addEventListener('pointercancel',endErase);
 $('#undoErase').addEventListener('click',function(){
  if(!CUT.out||!CUT.undo.length)return;
- CUT.out.getContext('2d').putImageData(CUT.undo.pop(),0,0);drawCutPreview();
+ CUT.mask=CUT.undo.pop();updateMaskedImage();
  CUT.quality=inspectWatchImage(CUT.out);$('#btnCutSave').disabled=!Store.canWrite||!CUT.quality.ok;
 });
-$('#resetErase').addEventListener('click',function(){CUT.undo=[];CUT.erasing=false;runCut();});
+$('#resetErase').addEventListener('click',function(){CUT.undo=[];CUT.panX=0;CUT.panY=0;CUT.zoom=1;$('#editZoom').value=100;runCut();});
 function runCut(){
   var r=CUT.rect, k=Math.min(1,1600/Math.max(r.w,r.h));
   var w=Math.max(8,Math.round(r.w*k)), h=Math.max(8,Math.round(r.h*k));
@@ -763,7 +776,7 @@ function runCut(){
   x.putImageData(id,0,0);
   var o=document.createElement('canvas'); o.width=box.w; o.height=box.h;
   o.getContext('2d').drawImage(c,box.x,box.y,box.w,box.h,0,0,box.w,box.h);
-  CUT.out=o;CUT.source=o.getContext('2d').getImageData(0,0,o.width,o.height);CUT.undo=[];CUT.erasing=false;
+  CUT.out=o;CUT.source=o.getContext('2d').getImageData(0,0,o.width,o.height);CUT.original=new Uint8ClampedArray(CUT.source.data);CUT.mask=new Uint8ClampedArray(o.width*o.height);for(var mi=0;mi<CUT.mask.length;mi++)CUT.mask[mi]=CUT.original[mi*4+3];CUT.undo=[];CUT.erasing=false;
   CUT.quality=inspectWatchImage(o);
   drawCutPreview();
   $('#cutNote').textContent=box.preserved?'Исходная прозрачность сохранена. Повторное удаление фона не требуется.':'Фон убран. Если остались куски фона, увеличьте допуск. Если пропали части часов, уменьшите.';
@@ -781,7 +794,7 @@ function openCut(file){
   if(!file) return;
   var im=new Image();
   im.onload=function(){
-    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null; CUT.quality=null;CUT.undo=[];CUT.zoom=1;$('#editZoom').value=100;setTool('none');
+    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null; CUT.quality=null;CUT.undo=[];CUT.zoom=1;CUT.panX=0;CUT.panY=0;$('#editZoom').value=100;setTool('none');
     ['inName','inBrand','inPrice','inLink'].forEach(function(id){ $('#'+id).value=''; });
     $('#selGender').value='u';$('#selStyle').value='dress';$('#inName').value='Часы '+(Store.items.length+1);var existing=Store.items.find(function(it){return it.id===REPLACE_ID;});if(existing)$('#inName').value=existing.name;['inName','inBrand','inPrice','inLink','selGender','selStyle'].forEach(function(id){$('#'+id).closest('.fld').hidden=!!existing;});document.querySelector('#v-edit .cut-title').textContent=existing?'Заменить фото':'Новые часы';
     show('edit'); cutCanvasSize(); drawCut(); runCut();
