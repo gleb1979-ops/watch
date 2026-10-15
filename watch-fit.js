@@ -26,7 +26,9 @@ window.WatchFit={create:function(o){
    // Calibrated against the detected palm-to-wrist estimate: the earlier 62mm
    // reference systematically undersized watch cases on real wrist photos.
    // The wrist width is measured from this user's own image, never from sex or demographic averages.
-   var desired=wristWidth*(caseDiameter()/50);
+   var calibrated=Number(o.wristMm&&o.wristMm());
+   var referenceMm=calibrated>=25&&calibrated<=110?calibrated:50;
+   var desired=wristWidth*(caseDiameter()/referenceMm);
    tx.s=Math.max(.4,Math.min(3.2,desired/Math.max(40,caseWidth)));
   }
   o.sync();o.draw();
