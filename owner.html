@@ -425,8 +425,8 @@ function toW(it){
   var w=SW[it.id];
   if(!w||w.url!==it.cutUrl){
     var im=new Image(); im.crossOrigin='anonymous'; im.onload=function(){
-      // Repair opaque white backgrounds left by the previous catalog exporter.
-      try{var c=document.createElement('canvas');c.width=im.naturalWidth;c.height=im.naturalHeight;var x=c.getContext('2d');x.drawImage(im,0,0);var px=x.getImageData(0,0,c.width,c.height),d=px.data;var corners=[0,(c.width-1)*4,(c.height-1)*c.width*4,(c.width*c.height-1)*4];if(corners.every(function(i){return d[i]>235&&d[i+1]>235&&d[i+2]>235&&d[i+3]===255;})){cutPixels(d,c.width,c.height,35,false);x.putImageData(px,0,0);SW[it.id].cut=c;it.displayUrl=c.toDataURL('image/png');document.querySelectorAll('[data-image-id]').forEach(function(el){if(el.dataset.imageId===it.id)el.src=it.displayUrl;});}}catch(e){}
+      // Never silently remove backgrounds from existing catalog images.
+      // Preserve saved transparency and the genuine finish of the watch.
       draw();
     }; im.onerror=function(){ if(it.cutPath&&im.src.indexOf('raw.githubusercontent')<0) im.src=rawUrl(it.cutPath); }; im.src=it.cutUrl;
     w=SW[it.id]={id:it.id,cut:im,url:it.cutUrl};
@@ -573,11 +573,21 @@ function cutPixels(d,w,h,tol,round){
       var xx=x+dx, yy=y+dy; if(xx<0||yy<0||xx>=w||yy>=h) continue;
       s+=a[yy*w+xx]; c++;
     }
-    var v=a[y*w+x]?Math.max(Math.round(s/c),128):0;
+    var v=a[y*w+x]?255:0; // avoid smearing background colour into translucent edges
     out[y*w+x]=v;
     if(v>8){ if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
   }
-  for(i=0;i<n;i++) d[i*4+3]=out[i];
+  // Use firm opacity inside the object and a narrow, one-pixel outer edge.
+  // The previous 3×3 blur produced bright semi-transparent halos.
+  for(i=0;i<n;i++){
+    if(!out[i]){d[i*4+3]=0;continue;}
+    var xx=i%w,yy=(i-xx)/w,nb=0;
+    if(xx>0&&out[i-1])nb++;
+    if(xx<w-1&&out[i+1])nb++;
+    if(yy>0&&out[i-w])nb++;
+    if(yy<h-1&&out[i+w])nb++;
+    d[i*4+3]=nb===4?255:(nb>=3?190:96);
+  }
   return x1<0?null:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
 var CUT={img:null,rect:null,sc:1,tol:45,round:false,out:null,drag:null,n:0,from:'tryon'};
