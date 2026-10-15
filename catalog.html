@@ -685,7 +685,7 @@ function startLive(){
     LIVE.stream=st; vid.srcObject=st; return vid.play();
   }).then(function(){
     if(request!==LIVE.request)return;
-    LIVE.on=true; S.photo=null; $('#demoBadge').hidden=true;
+    LIVE.on=true; S.photo=null; $('#demoBadge').hidden=true; $('#scannerGuide').hidden=false;
     $('#btnShot').hidden=false; $('#btnFlip').hidden=false; $('#btnLive').textContent='Выключить камеру';
     loopLive();
   }).catch(function(){ if(request!==LIVE.request)return; stopLive(); toast('Нет доступа к камере. Разрешите её в настройках браузера или используйте «Сфотографировать».'); });
