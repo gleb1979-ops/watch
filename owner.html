@@ -630,14 +630,14 @@ function cutPixels(d,w,h,tol,round){
     if(size>bestSize){ bestSize=size; best=id; }
   }
   for(i=0;i<n;i++) if(lab[i]!==best) a[i]=0;
-  // Clean pale background fragments in the lower-right corner.
+  // Clean pale background fragments on either side of the lower bracelet.
   // Only target connected neutral regions away from the bracelet centre.
   var fringe=new Uint8Array(n),seen=new Uint8Array(n),queue=new Int32Array(n);
-  var minX=Math.floor(w*.61),minY=Math.floor(h*.62);
+  var minX=Math.floor(w*.39),minY=Math.floor(h*.62);
   function pale(q){
     if(!a[q])return false;
     var xx=q%w,yy=(q-xx)/w;
-    if(xx<minX||yy<minY)return false;
+    if(yy<minY||(xx>Math.floor(w*.39)&&xx<Math.floor(w*.61)))return false;
     var j=q*4,r=d[j],g=d[j+1],b=d[j+2];
     return Math.min(r,g,b)>105&&Math.max(r,g,b)-Math.min(r,g,b)<55;
   }
@@ -648,8 +648,8 @@ function cutPixels(d,w,h,tol,round){
     queue[0]=seed;seen[seed]=1;
     while(head<tail){
       p=queue[head++];var fx=p%w,fy=(p-fx)/w;
-      if(fx>=Math.floor(w*.88)||fy>=Math.floor(h*.90))touchesOuter=true;
-      var nb=[fx>minX?p-1:-1,fx<w-1?p+1:-1,fy>minY?p-w:-1,fy<h-1?p+w:-1];
+      if(fx<=Math.floor(w*.12)||fx>=Math.floor(w*.88)||fy>=Math.floor(h*.90))touchesOuter=true;
+      var nb=[fx>0?p-1:-1,fx<w-1?p+1:-1,fy>minY?p-w:-1,fy<h-1?p+w:-1];
       for(var ni=0;ni<4;ni++){var q=nb[ni];if(q>=0&&!seen[q]&&pale(q)){seen[q]=1;queue[tail++]=q;}}
     }
     if(touchesOuter&&tail>Math.max(90,n*.0007)){
