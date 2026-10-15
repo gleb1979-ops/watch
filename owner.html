@@ -858,6 +858,11 @@ $('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; syncC
 /* Жесты: один палец двигает, два пальца меняют размер и поворот */
 var ptrs={};
 function cpt(e){ var r=cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*CW/r.width,y:(e.clientY-r.top)*CH/r.height}; }
+function keepOwnerFitVisible(){
+  S.tx.s=Math.min(3.2,Math.max(.4,Number.isFinite(S.tx.s)?S.tx.s:1.5));
+  S.tx.x=Math.min(CW-55,Math.max(55,Number.isFinite(S.tx.x)?S.tx.x:CW/2));
+  S.tx.y=Math.min(CH-55,Math.max(55,Number.isFinite(S.tx.y)?S.tx.y:CH/2));
+}
 cv.addEventListener('pointerdown',function(e){
   try{cv.setPointerCapture(e.pointerId);}catch(x){}
   ptrs[e.pointerId]=cpt(e);
@@ -876,13 +881,13 @@ cv.addEventListener('pointermove',function(e){
     if(S.tx.r>180) S.tx.r-=360; if(S.tx.r<-180) S.tx.r+=360;
     S.tx.x+=(cur.x-prev.x)/2; S.tx.y+=(cur.y-prev.y)/2;
   }
-  ptrs[e.pointerId]=cur; syncCtl(); draw();
+  ptrs[e.pointerId]=cur; keepOwnerFitVisible(); syncCtl(); draw();
 });
 function endPtr(e){ delete ptrs[e.pointerId]; }
 cv.addEventListener('pointerup',endPtr); cv.addEventListener('pointercancel',endPtr);
 cv.addEventListener('wheel',function(e){
   e.preventDefault();
-  S.tx.s=Math.min(3.2,Math.max(.4,S.tx.s*Math.exp(-e.deltaY*.0015))); syncCtl(); draw();
+  S.tx.s=Math.min(3.2,Math.max(.4,S.tx.s*Math.exp(-e.deltaY*.0015))); keepOwnerFitVisible(); syncCtl(); draw();
 },{passive:false});
 
 /* Сохранение снимка */
