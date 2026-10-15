@@ -273,7 +273,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
         <li>Нажмите Generate token, скопируйте его и вставьте ниже.</li>
       </ol>
       <div class="fld"><label for="inToken">Токен</label><input id="inToken" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-      <div class="row"><button class="btn btn-primary" id="btnOwnSave" type="button">Войти</button></div>
+      <label class="chk-row" style="margin:12px 0"><input type="checkbox" id="rememberOwner"> Запомнить вход на этом устройстве</label><p class="hint" style="margin-bottom:12px">На общем или чужом устройстве не включайте эту опцию: токен хранится в браузере и предоставляет доступ к изменению каталога.</p><div class="row"><button class="btn btn-primary" id="btnOwnSave" type="button">Войти</button></div>
     </section>
 
     <section id="v-try" hidden>
@@ -350,7 +350,7 @@ var GH={owner:'gleb1979-ops',repo:'watch',token:''};
 (function(){
   var m=/^([^.]+)\.github\.io$/i.exec(location.hostname);
   if(m){ GH.owner=m[1]; var p=location.pathname.split('/')[1]; if(p&&!/\.html?$/i.test(p)) GH.repo=p; }
-  try{ GH.token=sessionStorage.getItem('watch_token')||''; localStorage.removeItem('watch_token'); }catch(e){}
+  try{ GH.token=localStorage.getItem('watch_owner_token_persistent')||sessionStorage.getItem('watch_token')||''; localStorage.removeItem('watch_token'); }catch(e){}
 })();
 function rawUrl(path){ return 'https://raw.githubusercontent.com/'+GH.owner+'/'+GH.repo+'/HEAD/'+path; }
 function api(path,opt){
@@ -455,17 +455,25 @@ function renderOwner(){
   $('#btnLogout').hidden=!GH.token; var b=$('#btnOwner'); b.textContent=GH.token?'Владелец · выйти':'Вход владельца';
 }
 $('#btnOwner').addEventListener('click',function(){
-  if(GH.token){ GH.token=''; try{ sessionStorage.removeItem('watch_token'); localStorage.removeItem('watch_token'); }catch(e){} Store.canWrite=false; renderOwner(); renderCatalog(); Store.be.watch&&reloadList(); toast('Вы вышли.'); return; }
+  if(GH.token){ GH.token=''; try{ sessionStorage.removeItem('watch_token'); localStorage.removeItem('watch_token'); localStorage.removeItem('watch_owner_token_persistent'); }catch(e){} Store.canWrite=false; renderOwner(); renderCatalog(); Store.be.watch&&reloadList(); toast('Вы вышли.'); return; }
   show('owner');
 });
 function reloadList(){ Store.error=false; Store.ready=false; renderCatalog(); Store.be.watch(onItems,function(){ Store.ready=true; Store.error=true; renderCatalog(); }); }
-$('#btnLogout').addEventListener('click',function(){GH.token='';try{sessionStorage.removeItem('watch_token');localStorage.removeItem('watch_token');}catch(e){}Store.canWrite=false;renderOwner();show('cat');reloadList();toast('Вы вышли.');});
+$('#btnLogout').addEventListener('click',function(){GH.token='';try{sessionStorage.removeItem('watch_token');localStorage.removeItem('watch_token');localStorage.removeItem('watch_owner_token_persistent');}catch(e){}Store.canWrite=false;renderOwner();show('cat');reloadList();toast('Вы вышли.');});
 $('#btnOwnBack').addEventListener('click',function(){ show('cat'); });
 $('#btnOwnSave').addEventListener('click',function(){
   var t=($('#inToken').value||'').trim(); if(!t){ toast('Вставьте токен.'); return; }
   var btn=this; btn.disabled=true; var old=GH.token; GH.token=t;
   api('').then(function(repo){ if(!repo.permissions||!repo.permissions.push) throw new Error('Нет права записи'); return api('/contents/watches.json'); }).then(function(){
-    try{ sessionStorage.setItem('watch_token',t); }catch(e){ toast('Браузер не даёт сохранить токен. Вход действует до закрытия страницы.'); }
+    try{
+      if($('#rememberOwner').checked){
+        localStorage.setItem('watch_owner_token_persistent',t);
+        sessionStorage.removeItem('watch_token');
+      }else{
+        sessionStorage.setItem('watch_token',t);
+        localStorage.removeItem('watch_owner_token_persistent');
+      }
+    }catch(e){ toast('Браузер запрещает запоминание входа.'); }
     $('#inToken').value=''; Store.canWrite=true; renderOwner(); show('cat'); renderCatalog(); reloadList(); toast('Вы вошли как владелец.');
   }).catch(function(){ GH.token=old; toast('Токен не подошёл. Проверьте, что он выдан на репозиторий '+GH.repo+'.'); }).then(function(){ btn.disabled=false; });
 });
