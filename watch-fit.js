@@ -28,7 +28,9 @@ window.WatchFit={create:function(o){
    // The wrist width is measured from this user's own image, never from sex or demographic averages.
    var calibrated=Number(o.wristMm&&o.wristMm());
    var referenceMm=calibrated>=25&&calibrated<=110?calibrated:50;
-   var desired=wristWidth*(caseDiameter()/referenceMm);
+   var paperScale=Number(o.paperScale&&o.paperScale(g.x,g.y));
+   // A4 gives photo pixels/mm. Otherwise use measured wrist width or the photo estimate.
+   var desired=(paperScale>0&&Number.isFinite(paperScale)?paperScale*caseDiameter():wristWidth*(caseDiameter()/referenceMm));
    tx.s=Math.max(.4,Math.min(3.2,desired/Math.max(40,caseWidth)));
   }
   o.sync();o.draw();
