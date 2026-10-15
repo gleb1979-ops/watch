@@ -250,7 +250,7 @@ html,body{max-width:100%;overflow-x:clip}
         <div class="row" style="margin:10px 0;align-items:center;flex-wrap:wrap">
           <button type="button" class="btn" id="eraseBackground" aria-pressed="false">Ластик фона: выкл.</button>
           <label for="eraseSize">Размер ластика</label><input id="eraseSize" type="range" min="12" max="95" value="38" style="max-width:140px">
-          <button type="button" class="btn" id="panEditor">Перемещение</button><button type="button" class="btn" id="restorePixels">Восстановить часы</button><label for="editZoom">Увеличение</label><input id="editZoom" type="range" min="100" max="400" step="25" value="100" style="max-width:150px"><button type="button" class="btn" id="undoErase">Отменить мазок</button>
+          <button type="button" class="btn" id="panEditor">Перемещение</button><button type="button" class="btn" id="restorePixels">Восстановить часы</button><label for="editZoom">Увеличение <output id="editZoomValue">100%</output></label><button class="btn" type="button" id="zoomMinus">−</button><input id="editZoom" type="range" min="100" max="400" step="25" value="100" style="width:160px;max-width:100%;touch-action:pan-x;accent-color:#c59d5f"><button class="btn" type="button" id="zoomPlus">＋</button><button type="button" class="btn" id="undoErase">Отменить мазок</button>
           <button type="button" class="btn" id="resetErase">Вернуть автообработку</button>
         </div>
         <div class="row" style="margin:10px 0"><button type="button" class="btn" id="previewDark">Тёмный фон</button><button type="button" class="btn" id="previewLight">Светлый фон</button><button type="button" class="btn" id="previewCheck">Шахматный фон</button></div><p class="fit" id="cutNote"></p>
@@ -734,7 +734,15 @@ function editAt(e){
 $('#eraseBackground').addEventListener('click',function(){setTool(CUT.erase?'none':'erase');});
 $('#restorePixels').addEventListener('click',function(){setTool(CUT.restore?'none':'restore');});
 $('#panEditor').addEventListener('click',function(){setTool(CUT.pan?'none':'pan');});
-$('#editZoom').addEventListener('input',function(){CUT.zoom=Number(this.value)/100;drawCutPreview();});
+function setEditorZoom(value){
+ var pct=Math.max(100,Math.min(400,Math.round(value/25)*25));
+ CUT.zoom=pct/100;$('#editZoom').value=pct;$('#editZoomValue').textContent=pct+'%';
+ drawCutPreview();
+}
+$('#editZoom').addEventListener('input',function(){setEditorZoom(Number(this.value));});
+$('#editZoom').addEventListener('change',function(){setEditorZoom(Number(this.value));});
+$('#zoomPlus').addEventListener('click',function(){setEditorZoom(CUT.zoom*100+50);});
+$('#zoomMinus').addEventListener('click',function(){setEditorZoom(CUT.zoom*100-50);});
 $('#cp').addEventListener('pointerdown',function(e){
  if(!CUT.out)return;e.preventDefault();CUT.erasing=true;
  CUT.last={x:e.clientX,y:e.clientY};
@@ -794,7 +802,7 @@ function openCut(file){
   if(!file) return;
   var im=new Image();
   im.onload=function(){
-    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null; CUT.quality=null;CUT.undo=[];CUT.zoom=1;CUT.panX=0;CUT.panY=0;$('#editZoom').value=100;setTool('none');
+    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null; CUT.quality=null;CUT.undo=[];CUT.zoom=1;CUT.panX=0;CUT.panY=0;$('#editZoom').value=100;$('#editZoomValue').textContent='100%';setTool('none');
     ['inName','inBrand','inPrice','inLink'].forEach(function(id){ $('#'+id).value=''; });
     $('#selGender').value='u';$('#selStyle').value='dress';$('#inName').value='Часы '+(Store.items.length+1);var existing=Store.items.find(function(it){return it.id===REPLACE_ID;});if(existing)$('#inName').value=existing.name;['inName','inBrand','inPrice','inLink','selGender','selStyle'].forEach(function(id){$('#'+id).closest('.fld').hidden=!!existing;});document.querySelector('#v-edit .cut-title').textContent=existing?'Заменить фото':'Новые часы';
     show('edit'); cutCanvasSize(); drawCut(); runCut();
