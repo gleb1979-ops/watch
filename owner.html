@@ -404,7 +404,17 @@ function ghBackend(){
   return {
     replacePhoto:function(id,cutB,thumbB){
       var suffix=Date.now().toString(36),cp='img/'+id+'-'+suffix+'-cut.png',tp='img/'+id+'-'+suffix+'-thumb.png';
-      return Promise.all([b64Blob(cutB),b64Blob(thumbB)]).then(function(b){return putFile(cp,b[0],'Replace watch photo '+id).then(function(){return putFile(tp,b[1],'Replace watch thumbnail '+id);});}).then(function(){
+      return Promise.all([b64Blob(cutB),b64Blob(thumbB)]).then(function(b){
+        return putFile(cp,b[0],'Replace watch photo '+id).then(function(cutResult){
+          return putFile(tp,b[1],'Replace watch thumbnail '+id).then(function(thumbResult){
+            return Promise.all([getFile(cp),getFile(tp)]).then(function(saved){
+              if(!saved[0]||!saved[1]||saved[0].sha!==cutResult.content.sha||saved[1].sha!==thumbResult.content.sha){
+                throw new Error('image-verification-failed');
+              }
+            });
+          });
+        });
+      }).then(function(){
         return writeList(function(list){var found=false;var result=list.map(function(row){if(String(row.id)!==id)return row;found=true;var next=Object.assign({},row,{cut:cp,photo:cp,thumb:tp});next.views=(row.views&&row.views.length?row.views:[{role:'front',cut:row.cut}]).map(function(v,i){return i===0?Object.assign({},v,{cut:cp}):v;});return next;});if(!found)throw new Error('not-found');return result;},'Replace primary photo '+id);
       }).then(function(){pending[id]={cut:URL.createObjectURL(cutB),photo:URL.createObjectURL(cutB),thumb:URL.createObjectURL(thumbB)};}).then(emit);
     },
@@ -467,6 +477,7 @@ function saveErr(e){
   if(s===401) return 'Токен не подходит или устарел. Войдите как владелец заново.';
   if(s===403||s===404) return 'Нет прав записи. У токена должно быть Contents: Read and write для репозитория '+GH.repo+'.';
   if(s===422) return 'Файл с таким именем уже есть. Попробуйте ещё раз.';
+  if(e&&e.message==='image-verification-failed') return 'Новые фотографии не прошли проверку сохранения. Старые часы не изменены.';
   return 'Не удалось сохранить. Проверьте интернет и попробуйте ещё раз.';
 }
 /* ---------- Вход владельца ---------- */
