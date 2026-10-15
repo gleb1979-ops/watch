@@ -211,7 +211,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 <script src="watch-fit.js?v=20261014u"></script>
 <script src="wrist.js?v=20261014u" defer></script>
 <script src="locale.js?v=20261015photo1" defer></script>
-<script src="watch-real.js?v=20261014u" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014u"><script src="fitting-workspace.js?v=20261014u" defer></script><script src="made-by-byd.js?v=20261014w" defer></script></head>
+<script src="watch-real.js?v=20261015realism1" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014u"><script src="fitting-workspace.js?v=20261014u" defer></script><script src="made-by-byd.js?v=20261014w" defer></script></head>
 <body>
 
 <div class="wrap">
@@ -297,7 +297,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 <div class="ctl"><label for="sceneRot">Поворот фото</label><input id="sceneRot" type="range" min="-180" max="180" value="0"><output id="sceneRotOut">0°</output></div>
 <button class="btn" id="resetScene" type="button">Сбросить фото</button>
 <p class="hint">Выберите режим: один палец перемещает, два — приближают и поворачивают. В режиме «Рука + часы» часы остаются на запястье.</p>
-<div class="row"><button class="btn btn-primary" id="autoFit" type="button">Автоматическая посадка</button><button class="btn" id="markWrist" type="button">Указать запястье</button></div><p class="hint" id="autoFitStatus" role="status" aria-live="polite">Загрузите фото руки без часов. Посадка подберётся автоматически.</p><div class="ctl"><label for="fitBandwidth">Ширина браслета</label><input id="fitBandwidth" type="range" min="55" max="145" value="100"><output id="fitBandwidthOut">100%</output></div><div class="ctl"><label for="fitBandlength">Длина браслета</label><input id="fitBandlength" type="range" min="50" max="150" value="100"><output id="fitBandlengthOut">100%</output></div><details class="photo-fit"><summary>Точная настройка</summary>
+<div class="row" style="margin:10px 0"><button class="btn btn-primary" id="maxRealism" type="button" aria-pressed="false">Максимальный реализм</button><span id="realismState" class="hint" style="align-self:center">Стандартная примерка</span></div><div class="row"><button class="btn btn-primary" id="autoFit" type="button">Автоматическая посадка</button><button class="btn" id="markWrist" type="button">Указать запястье</button></div><p class="hint" id="autoFitStatus" role="status" aria-live="polite">Загрузите фото руки без часов. Посадка подберётся автоматически.</p><details class="photo-fit"><summary>Дополнительная настройка браслета</summary><div class="ctl"><label for="fitBandwidth">Ширина браслета</label><input id="fitBandwidth" type="range" min="55" max="145" value="100"><output id="fitBandwidthOut">100%</output></div><div class="ctl"><label for="fitBandlength">Длина браслета</label><input id="fitBandlength" type="range" min="50" max="150" value="100"><output id="fitBandlengthOut">100%</output></div></details><details class="photo-fit"><summary>Точная настройка</summary>
 <p class="hint">Загрузите фото своей руки без часов. Сначала подгоните часы в режиме «Часы», затем выберите «Рука + часы» для совместного поворота и приближения.</p>
 <div class="ctl"><label for="fitWidth">Ширина часов</label><input id="fitWidth" type="range" min="55" max="130" value="100"><output id="fitWidthOut">100%</output></div>
 <div class="ctl"><label for="fitSlant">Наклон часов</label><input id="fitSlant" type="range" min="-35" max="35" value="0"><output id="fitSlantOut">0°</output></div>
@@ -644,7 +644,7 @@ $('#btnCutSave').addEventListener('click',function(){
 });
 
 /* ---------- Примерка ---------- */
-var FIT={width:100,curve:40,bandwidth:100,bandlength:100,slant:0,shadow:25};
+var FIT={width:100,curve:40,bandwidth:100,bandlength:100,slant:0,shadow:25};var REALISM_MAX=false;
 var VIEW={x:450,y:600,s:1,r:0},EDIT='watch',WATCH_VISIBLE=true;
 var cv=$('#cv'), ctx=cv.getContext?cv.getContext('2d'):null, CW=900, CH=1200, PX=2;
 var vid=$('#vid'), LIVE={on:false,stream:null,face:'environment',raf:0,request:0};
@@ -756,7 +756,21 @@ $('#fileGal').addEventListener('change',function(e){ loadPhoto(e.target.files[0]
 $('#btnReset').addEventListener('click',function(){ resetTx(); draw(); });
 
 ['Width','Bandwidth','Bandlength','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).addEventListener('input',function(){FIT[n.toLowerCase()]=Number(this.value);$('#fit'+n+'Out').textContent=this.value+(n==='Slant'?'°':'%');draw();});});
-$('#fitReset').addEventListener('click',function(){FIT={width:100,curve:40,bandwidth:100,bandlength:100,slant:0,shadow:25};['Width','Bandwidth','Bandlength','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
+function setMaxRealism(on){
+ REALISM_MAX=!!on;
+ $('#maxRealism').setAttribute('aria-pressed',String(REALISM_MAX));
+ $('#maxRealism').textContent=REALISM_MAX?'Максимальный реализм ✓':'Максимальный реализм';
+ $('#realismState').textContent=REALISM_MAX?'Усиленная посадка и естественное освещение':'Стандартная примерка';
+ var targets=REALISM_MAX?{width:100,curve:58,bandwidth:100,bandlength:100,slant:0,shadow:38}:{width:100,curve:40,bandwidth:100,bandlength:100,slant:0,shadow:25};
+ FIT=targets;
+ ['Width','Bandwidth','Bandlength','Curve','Slant','Shadow'].forEach(function(n){
+  var v=FIT[n.toLowerCase()];$('#fit'+n).value=v;
+  $('#fit'+n+'Out').textContent=v+(n==='Slant'?'°':'%');
+ });
+ draw();
+}
+$('#maxRealism').addEventListener('click',function(){setMaxRealism(!REALISM_MAX);});
+$('#fitReset').addEventListener('click',function(){REALISM_MAX=false;$('#maxRealism').textContent='Максимальный реализм';$('#maxRealism').setAttribute('aria-pressed','false');$('#realismState').textContent='Стандартная примерка';FIT={width:100,curve:40,bandwidth:100,bandlength:100,slant:0,shadow:25};['Width','Bandwidth','Bandlength','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
 
 $('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; syncCtl(); draw(); });
 $('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; syncCtl(); draw(); });
