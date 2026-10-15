@@ -205,7 +205,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 /* Shared fitting workspace: preserve the canvas aspect ratio for accurate gestures. */
 .try-grid{grid-template-columns:1fr;gap:24px}.stage{max-width:760px;border-radius:16px}.stage canvas{width:100%;height:auto;max-height:none;aspect-ratio:3/4}
 @media(min-width:900px){.try-grid{grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);align-items:start}.stage{position:sticky;top:12px}}
-@media(max-width:719px){.stage{width:100%;max-width:none}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
+@media(max-width:719px){.stage{width:min(100%, calc(66dvh * .75));margin-inline:auto;max-width:none}.stage canvas{display:block;width:100%;height:auto;aspect-ratio:3/4}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
 .watch-switch{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:end}.watch-switch .btn{font-size:.8rem;padding-inline:8px;min-height:44px}.watch-switch .fld{font-size:.8rem}.watch-switch select{min-height:44px;max-width:100%}.topbar .brand{font-size:clamp(.78rem,2.5vw,1rem);letter-spacing:.07em;white-space:normal;line-height:1.25;min-width:0;max-width:100%}
 </style>
 <script src="watch-fit.js?v=20261015-autofit4"></script>
@@ -789,7 +789,7 @@ function keepFitVisible(){
   S.tx.y=Math.min(CH-55,Math.max(55,S.tx.y));
 }
 
-cv.addEventListener('pointerdown',function(e){if(e.button&&e.button!==0)return;e.preventDefault();if(fitting.point(localPoint(cpt(e))))return;cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=cpt(e);beginGesture();});
+cv.addEventListener('pointerdown',function(e){if(e.button&&e.button!==0)return;var pt=localPoint(cpt(e));if(fitting.point(pt)){e.preventDefault();return;}if(EDIT==='watch'&&Math.hypot(pt.x-S.tx.x,pt.y-S.tx.y)>Math.max(85,115*S.tx.s)){return;}e.preventDefault();cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=cpt(e);beginGesture();});
 cv.addEventListener('pointermove',function(e){if(!ptrs[e.pointerId]||!gesture)return;e.preventDefault();ptrs[e.pointerId]=cpt(e);var g=gesture,t=EDIT==='watch'?S.tx:VIEW,ps=g.ids.map(function(id){return activePoint(ptrs[id]);}),a=g.ps[0],b=ps[0];
 if(ps.length===1){t.x=g.tx.x+b.x-a.x;t.y=g.tx.y+b.y-a.y;}else{var a2=g.ps[1],b2=ps[1],old={x:(a.x+a2.x)/2,y:(a.y+a2.y)/2},now={x:(b.x+b2.x)/2,y:(b.y+b2.y)/2};var d=Math.hypot(a2.x-a.x,a2.y-a.y),ratio=d>1?Math.hypot(b2.x-b.x,b2.y-b.y)/d:1;var angle=wrapAngle((Math.atan2(b2.y-b.y,b2.x-b.x)-Math.atan2(a2.y-a.y,a2.x-a.x))*180/Math.PI);t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,g.tx.s*ratio));ratio=t.s/g.tx.s;var rad=angle*Math.PI/180,x=g.tx.x-old.x,y=g.tx.y-old.y;t.x=now.x+ratio*(x*Math.cos(rad)-y*Math.sin(rad));t.y=now.y+ratio*(x*Math.sin(rad)+y*Math.cos(rad));t.r=wrapAngle(g.tx.r+angle);}if(EDIT==='watch')keepFitVisible();syncCtl();syncView();draw();});
 function endPtr(e){delete ptrs[e.pointerId];beginGesture();}
@@ -798,7 +798,7 @@ cv.addEventListener('wheel',function(e){e.preventDefault();var t=EDIT==='watch'?
 function syncView(){$('#sceneScale').value=Math.round(VIEW.s*100);$('#sceneScaleOut').textContent=VIEW.s.toFixed(1)+'×';$('#sceneRot').value=Math.round(VIEW.r);$('#sceneRotOut').textContent=Math.round(VIEW.r)+'°';}
 function resetView(){VIEW={x:CW/2,y:CH/2,s:1,r:0};syncView();}
 function editMode(mode){Object.keys(ptrs).forEach(function(id){try{cv.releasePointerCapture(+id);}catch(e){}});EDIT=mode;['sceneScale','sceneRot','resetScene'].forEach(function(id){$('#'+id).disabled=mode==='watch';});ptrs={};gesture=null;['Watch','Scene'].forEach(function(n){var b=$('#mode'+n),on=mode===(n==='Watch'?'watch':'scene');b.setAttribute('aria-pressed',on);b.classList.toggle('btn-primary',on);});}
-$('#modeWatch').onclick=function(){editMode('watch');};$('#modeScene').onclick=function(){editMode('scene');};
+$('#modeWatch').onclick=function(){resetView();editMode('watch');draw();};$('#modeScene').onclick=function(){editMode('scene');};
 $('#sceneScale').oninput=function(){VIEW.s=this.value/100;syncView();draw();};$('#sceneRot').oninput=function(){VIEW.r=+this.value;syncView();draw();};$('#resetScene').onclick=function(){resetView();draw();};
 $('#toggleWatch').onclick=function(){WATCH_VISIBLE=!WATCH_VISIBLE;this.setAttribute('aria-pressed',!WATCH_VISIBLE);this.textContent=WATCH_VISIBLE?'Скрыть часы':'Показать часы';draw();};
 
