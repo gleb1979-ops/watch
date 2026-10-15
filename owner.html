@@ -357,7 +357,7 @@ var GH={owner:'gleb1979-ops',repo:'watch',token:''};
 (function(){
   var m=/^([^.]+)\.github\.io$/i.exec(location.hostname);
   if(m){ GH.owner=m[1]; var p=location.pathname.split('/')[1]; if(p&&!/\.html?$/i.test(p)) GH.repo=p; }
-  try{ GH.token=localStorage.getItem('watch_owner_token_persistent')||sessionStorage.getItem('watch_token')||''; localStorage.removeItem('watch_token'); }catch(e){}
+  try{ GH.token=sessionStorage.getItem('watch_token')||localStorage.getItem('watch_owner_token_persistent')||''; localStorage.removeItem('watch_token'); }catch(e){}
 })();
 function rawUrl(path){ return 'https://raw.githubusercontent.com/'+GH.owner+'/'+GH.repo+'/HEAD/'+path; }
 function api(path,opt){
@@ -446,9 +446,21 @@ function onItems(items){
   if(S.view==='tryon') renderPicker();
 }
 function initStore(){
-  Store.mode='gh'; Store.canWrite=!!GH.token; Store.be=ghBackend(); Store.ready=false;
+  Store.mode='gh'; Store.canWrite=false; Store.be=ghBackend(); Store.ready=false;
   renderOwner(); renderCatalog();
-  Store.be.watch(onItems,function(){ Store.ready=true; Store.error=true; renderCatalog(); });
+  if(GH.token){
+    api('').then(function(repo){
+      if(!repo.permissions||!repo.permissions.push)throw new Error('No write permission');
+      return api('/contents/watches.json');
+    }).then(function(){
+      Store.canWrite=true;renderOwner();reloadList();
+    }).catch(function(){
+      GH.token='';
+      try{sessionStorage.removeItem('watch_token');localStorage.removeItem('watch_owner_token_persistent');}catch(e){}
+      Store.canWrite=false;renderOwner();reloadList();
+      toast('Сохранённый токен недействителен. Войдите с действующим токеном.');
+    });
+  }else Store.be.watch(onItems,function(){Store.ready=true;Store.error=true;renderCatalog();});
 }
 function saveErr(e){
   var s=e&&e.status;
@@ -459,7 +471,7 @@ function saveErr(e){
 }
 /* ---------- Вход владельца ---------- */
 function renderOwner(){
-  var logged=!!GH.token, persisted=false;
+  var logged=!!GH.token&&Store.canWrite, persisted=false;
   try{persisted=!!localStorage.getItem('watch_owner_token_persistent');}catch(e){}
   $('#btnLogout').hidden=!logged;
   $('#btnOwner').textContent=logged?'Кабинет владельца':'Вход владельца';
