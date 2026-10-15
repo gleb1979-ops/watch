@@ -6,13 +6,27 @@ window.WatchFit={create:function(o){
  function status(s){o.status.textContent=s;}
  function cancel(){serial++;busy(false);}
  function dimensions(){var im=o.photo(),k=Math.min(o.width/im.width,o.height/im.height);return {k:k,x:(o.width-im.width*k)/2,y:(o.height-im.height*k)/2};}
+ function caseDiameter(){
+  var item=o.item&&o.item(),name=item&&item.name||'';
+  // Optional structured diameter for future watches; names such as "Daytona 40mm" also work.
+  var mm=Number(item&&(item.diameterMm||item.caseDiameterMm));
+  if(!(mm>=20&&mm<=65)){var m=name.match(/(?:^|[^\d])(\d{2}(?:[.,]\d)?)\s*mm\b/i);mm=m?Number(m[1].replace(',','.')):40;}
+  return mm>=20&&mm<=65?mm:40;
+ }
  function place(g){
-  anchor=g;var tx=o.tx(),img=o.watch();tx.x=g.x;tx.y=g.y;tx.r=g.angle;
+  anchor=g;
+  var tx=o.tx(),img=o.watch();
+  tx.x=g.x;tx.y=g.y;tx.r=g.angle;
   if(img&&(img.naturalWidth||img.width)>0){
-   var p=window.WatchReal&&WatchReal.prepare(img),height=p?200*(p.bot-p.top)*p.h/p.w:200*(img.naturalHeight||img.height)/(img.naturalWidth||img.width)*.4;
-   tx.s=Math.max(.25,Math.min(2.5,g.width*.55/Math.max(20,height)));
+   var p=window.WatchReal&&WatchReal.prepare(img);
+   // The front-view case diameter corresponds to the case WIDTH, not its vertical height.
+   // It is independent of how tightly the original watch image was cropped.
+   var caseWidth=p?200*p.caseW:200;
+   var wristWidth=Math.max(25,g.width);
+   var desired=wristWidth*(caseDiameter()/62);
+   tx.s=Math.max(.4,Math.min(3.2,desired/Math.max(40,caseWidth)));
   }
-  o.defaults();o.sync();o.draw();
+  o.sync();o.draw();
  }
  async function detect(){
   var photo=o.photo();if(!photo){status('Сначала загрузите фото руки.');return;}
