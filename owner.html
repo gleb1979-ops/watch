@@ -647,7 +647,7 @@ function cutPixels(d,w,h,tol,round){
   }
   return x1<0?null:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
-var CUT={img:null,rect:null,sc:1,tol:45,round:false,out:null,drag:null,n:0,from:'tryon'};
+var CUT={img:null,rect:null,sc:1,tol:45,round:false,out:null,drag:null,n:0,from:'tryon',quality:null};
 function cutCanvasSize(){
   var im=CUT.img; CUT.sc=Math.min(1,1000/Math.max(im.width,im.height));
   var c=$('#cc'); c.width=Math.round(im.width*CUT.sc); c.height=Math.round(im.height*CUT.sc);
@@ -661,6 +661,24 @@ function drawCut(){
   x.fillRect(0,ry,rx,rh); x.fillRect(rx+rw,ry,c.width-rx-rw,rh);
   x.strokeStyle='#ffffff'; x.lineWidth=2; x.setLineDash([6,4]); x.strokeRect(rx,ry,rw,rh); x.setLineDash([]);
 }
+function inspectWatchImage(canvas){
+  var w=canvas.width,h=canvas.height;
+  if(w<80||h<80)return {ok:false,message:'Слишком маленькое изображение. Выберите фотографию большего размера.'};
+  var g=canvas.getContext('2d',{willReadFrequently:true}),d;
+  try{d=g.getImageData(0,0,w,h).data;}catch(e){return {ok:false,message:'Не удалось проверить пиксели фотографии.'};}
+  var total=w*h,solid=0,visible=0,edge=0,lightEdge=0,step=Math.max(1,Math.floor(total/90000));
+  for(var i=0;i<total;i+=step){
+    var p=i*4,a=d[p+3],r=d[p],gr=d[p+1],b=d[p+2];
+    if(a>245)solid++;
+    if(a>20)visible++;
+    if(a>12&&a<245){edge++;if(r>205&&gr>205&&b>205)lightEdge++;}
+  }
+  var samples=Math.ceil(total/step),coverage=visible/samples,edgeRatio=edge?lightEdge/edge:0;
+  if(coverage<.015)return {ok:false,message:'После обработки почти не осталось часов. Уменьшите допуск удаления фона.'};
+  if(coverage>.985)return {ok:false,message:'Фон почти не удалён. Уточните рамку или допуск перед сохранением.'};
+  if(edge>samples*.002&&edgeRatio>.68)return {ok:false,message:'Обнаружен подозрительный белый ореол по краю изображения. Измените выделение или загрузите PNG с прозрачностью.'};
+  return {ok:true,message:'Проверка изображения пройдена: прозрачность и видимая область в норме.'};
+}
 function runCut(){
   var r=CUT.rect, k=Math.min(1,1600/Math.max(r.w,r.h));
   var w=Math.max(8,Math.round(r.w*k)), h=Math.max(8,Math.round(r.h*k));
@@ -673,17 +691,19 @@ function runCut(){
   var o=document.createElement('canvas'); o.width=box.w; o.height=box.h;
   o.getContext('2d').drawImage(c,box.x,box.y,box.w,box.h,0,0,box.w,box.h);
   CUT.out=o;
+  CUT.quality=inspectWatchImage(o);
   var s=Math.min(pv.width/box.w,pv.height/box.h);
   px.clearRect(0,0,pv.width,pv.height);
   px.drawImage(o,(pv.width-box.w*s)/2,(pv.height-box.h*s)/2,box.w*s,box.h*s);
   $('#cutNote').textContent=box.preserved?'Исходная прозрачность сохранена. Повторное удаление фона не требуется.':'Фон убран. Если остались куски фона, увеличьте допуск. Если пропали части часов, уменьшите.';
-  $('#btnCutSave').disabled=!Store.canWrite;
+  $('#cutNote').textContent += ' '+CUT.quality.message;
+  $('#btnCutSave').disabled=!Store.canWrite||!CUT.quality.ok;
 }
 function openCut(file){
   if(!file) return;
   var im=new Image();
   im.onload=function(){
-    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null;
+    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null; CUT.quality=null;
     ['inName','inBrand','inPrice','inLink'].forEach(function(id){ $('#'+id).value=''; });
     $('#selGender').value='u';$('#selStyle').value='dress';$('#inName').value='Часы '+(Store.items.length+1);var existing=Store.items.find(function(it){return it.id===REPLACE_ID;});if(existing)$('#inName').value=existing.name;['inName','inBrand','inPrice','inLink','selGender','selStyle'].forEach(function(id){$('#'+id).closest('.fld').hidden=!!existing;});document.querySelector('#v-edit .cut-title').textContent=existing?'Заменить фото':'Новые часы';
     show('edit'); cutCanvasSize(); drawCut(); runCut();
@@ -708,6 +728,8 @@ $('#btnCatAdd').addEventListener('click',function(){REPLACE_ID=null;$('#fileCut'
 $('#fileCut').addEventListener('change',function(e){ openCut(e.target.files[0]); e.target.value=''; });
 $('#btnCutSave').addEventListener('click',function(){
   if(!CUT.out||!Store.be||!Store.canWrite) return;
+  CUT.quality=inspectWatchImage(CUT.out);
+  if(!CUT.quality.ok){toast(CUT.quality.message);$('#btnCutSave').disabled=true;return;}
   var targetId=REPLACE_ID;var btn=this, link=($('#inLink').value||'').trim();
   if(!targetId&&link&&!safeLink(link)){ toast('Ссылка должна начинаться с http:// или https://'); return; }
   var meta={name:($('#inName').value||'').trim().slice(0,60)||'Часы',brand:($('#inBrand').value||'').trim().slice(0,40),price:($('#inPrice').value||'').trim().slice(0,30),gender:$('#selGender').value,style:$('#selStyle').value,link:link};
