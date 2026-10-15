@@ -475,7 +475,8 @@ function initStore(){
 function saveErr(e){
   var s=e&&e.status;
   if(s===401) return 'Токен не подходит или устарел. Войдите как владелец заново.';
-  if(s===403||s===404) return 'Нет прав записи. У токена должно быть Contents: Read and write для репозитория '+GH.repo+'.';
+  if(s===403) return 'GitHub отклонил сохранение (403). Проверьте права Contents: Read and write, доступ токена к репозиторию и ограничения аккаунта. При необходимости войдите с другим токеном.';
+  if(s===404) return 'GitHub не нашёл файл или не дал доступ к репозиторию. Проверьте Repository access у токена.';
   if(s===422) return 'Файл с таким именем уже есть. Попробуйте ещё раз.';
   if(e&&e.message==='image-verification-failed') return 'Новые фотографии не прошли проверку сохранения. Старые часы не изменены.';
   return 'Не удалось сохранить. Проверьте интернет и попробуйте ещё раз.';
@@ -772,8 +773,8 @@ $('#btnCutSave').addEventListener('click',function(){
   Promise.all([blobOf(cutC,'image/png'),blobOf(phC,'image/png')])
     .then(function(bs){ return targetId?Store.be.replacePhoto(targetId,bs[0],bs[1]):Store.be.add(meta,bs[0],bs[0]); })
     .then(function(){ toast(targetId?'Фото заменено в общем каталоге.':'Часы сохранены в каталог.');REPLACE_ID=null;show('cat'); renderCatalog(); })
-    .catch(function(e){ toast(saveErr(e)); })
-    .then(function(){ btn.disabled=!CUT.out; btn.textContent='Сохранить в каталог'; });
+    .catch(function(e){ toast(saveErr(e)); if(e&&[401,403,404].indexOf(e.status)>=0){show('owner');renderOwner();} })
+    .then(function(){ btn.disabled=!CUT.out||!CUT.quality||!CUT.quality.ok; btn.textContent='Сохранить в каталог'; });
 });
 
 /* ---------- Примерка ---------- */
