@@ -32,6 +32,7 @@ window.WatchFit={create:function(o){
    // A4 gives photo pixels/mm. Otherwise use measured wrist width or the photo estimate.
    var desired=(paperScale>0&&Number.isFinite(paperScale)?paperScale*caseDiameter():wristWidth*(caseDiameter()/referenceMm));
    tx.s=Math.max(.4,Math.min(3.2,desired/Math.max(40,caseWidth)));
+   if(o.report)o.report({mode:paperScale>0?'A4':'estimate',pxPerMm:paperScale,diameterMm:caseDiameter(),targetPx:desired,renderPx:caseWidth*tx.s});
   }
   o.sync();o.draw();
  }
