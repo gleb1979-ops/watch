@@ -622,6 +622,32 @@ function cutPixels(d,w,h,tol,round){
     if(size>bestSize){ bestSize=size; best=id; }
   }
   for(i=0;i<n;i++) if(lab[i]!==best) a[i]=0;
+  // Remove pale, near-neutral background remnants attached at the lower-right
+  // border. Protect the central watch/bracelet region and coloured metal.
+  var fringe=new Uint8Array(n),queue=new Int32Array(n),tail=0,head=0;
+  var minX=Math.floor(w*.61),minY=Math.floor(h*.54);
+  function pale(q){
+    if(!a[q]||fringe[q])return false;
+    var xx=q%w,yy=(q-xx)/w;
+    if(xx<minX||yy<minY)return false;
+    var j=q*4,r=d[j],g=d[j+1],b=d[j+2];
+    var high=Math.max(r,g,b),low=Math.min(r,g,b);
+    return low>142 && high-low<35;
+  }
+  function addPale(q){if(pale(q)){fringe[q]=1;queue[tail++]=q;}}
+  for(x=minX;x<w;x++)addPale((h-1)*w+x);
+  for(y=minY;y<h;y++)addPale(y*w+w-1);
+  while(head<tail){
+    p=queue[head++];var fx=p%w,fy=(p-fx)/w;
+    if(fx>minX)addPale(p-1);
+    if(fx<w-1)addPale(p+1);
+    if(fy>minY)addPale(p-w);
+    if(fy<h-1)addPale(p+w);
+  }
+  // Small isolated reflections must not trigger an aggressive cut.
+  if(tail>Math.max(160,n*.003)){
+    for(i=0;i<n;i++)if(fringe[i])a[i]=0;
+  }
   /* смягчаем край: среднее значение прозрачности 3×3 */
   var out=new Uint8Array(n), x0=w, y0=h, x1=-1, y1=-1;
   for(y=0;y<h;y++) for(x=0;x<w;x++){
