@@ -247,6 +247,12 @@ html,body{max-width:100%;overflow-x:clip}
       <div class="cut-ctl">
         <div class="ctl"><label for="rngTol">Допуск фона</label><input id="rngTol" type="range" min="10" max="140" value="45"><output id="outTol">45</output></div>
         <label class="chk-row"><input id="chkRound" type="checkbox"> Оставить только круг (если фон пёстрый)</label>
+        <div class="row" style="margin:10px 0;align-items:center;flex-wrap:wrap">
+          <button type="button" class="btn" id="eraseBackground" aria-pressed="false">Ластик фона: выкл.</button>
+          <label for="eraseSize">Размер ластика</label><input id="eraseSize" type="range" min="12" max="95" value="38" style="max-width:140px">
+          <button type="button" class="btn" id="undoErase">Отменить мазок</button>
+          <button type="button" class="btn" id="resetErase">Вернуть автообработку</button>
+        </div>
         <div class="row" style="margin:10px 0"><button type="button" class="btn" id="previewDark">Тёмный фон</button><button type="button" class="btn" id="previewLight">Светлый фон</button><button type="button" class="btn" id="previewCheck">Шахматный фон</button></div><p class="fit" id="cutNote"></p>
         <div class="form-grid">
           <div class="fld"><label for="inName">Название</label><input id="inName" type="text" maxlength="60" placeholder="Например, Seiko 5 Sports"></div>
@@ -682,7 +688,7 @@ function cutPixels(d,w,h,tol,round){
   }
   return x1<0?null:{x:x0,y:y0,w:x1-x0+1,h:y1-y0+1};
 }
-var CUT={img:null,rect:null,sc:1,tol:45,round:false,out:null,drag:null,n:0,from:'tryon',quality:null};
+var CUT={img:null,rect:null,sc:1,tol:45,round:false,out:null,drag:null,n:0,from:'tryon',quality:null,erase:false,undo:[],erasing:false};
 function cutCanvasSize(){
   var im=CUT.img; CUT.sc=Math.min(1,1000/Math.max(im.width,im.height));
   var c=$('#cc'); c.width=Math.round(im.width*CUT.sc); c.height=Math.round(im.height*CUT.sc);
@@ -714,6 +720,50 @@ function inspectWatchImage(canvas){
   if(edge>samples*.002&&edgeRatio>.68)return {ok:false,message:'Обнаружен подозрительный белый ореол по краю изображения. Измените выделение или загрузите PNG с прозрачностью.'};
   return {ok:true,message:'Проверка изображения пройдена: прозрачность и видимая область в норме.'};
 }
+function drawCutPreview(){
+  if(!CUT.out)return;
+  var pv=$('#cp'),px=pv.getContext('2d'),o=CUT.out;
+  var s=Math.min(pv.width/o.width,pv.height/o.height);
+  px.clearRect(0,0,pv.width,pv.height);
+  px.imageSmoothingQuality='high';
+  px.drawImage(o,(pv.width-o.width*s)/2,(pv.height-o.height*s)/2,o.width*s,o.height*s);
+}
+function eraseAt(e){
+  if(!CUT.out||!CUT.erase)return;
+  var pv=$('#cp'),b=pv.getBoundingClientRect(),o=CUT.out;
+  var s=Math.min(pv.width/o.width,pv.height/o.height);
+  var x=(e.clientX-b.left)*pv.width/b.width,y=(e.clientY-b.top)*pv.height/b.height;
+  var ox=(x-(pv.width-o.width*s)/2)/s,oy=(y-(pv.height-o.height*s)/2)/s;
+  if(ox<0||oy<0||ox>o.width||oy>o.height)return;
+  var size=Number($('#eraseSize').value)||38,brush=Math.max(5,size/s);
+  var ctx=o.getContext('2d');
+  ctx.save();ctx.globalCompositeOperation='destination-out';
+  ctx.beginPath();ctx.arc(ox,oy,brush/2,0,Math.PI*2);ctx.fill();ctx.restore();
+  drawCutPreview();
+}
+$('#eraseBackground').addEventListener('click',function(){
+  CUT.erase=!CUT.erase;this.textContent=CUT.erase?'Ластик фона: включён':'Ластик фона: выкл.';
+  this.setAttribute('aria-pressed',String(CUT.erase));
+  $('#cp').style.touchAction=CUT.erase?'none':'auto';
+});
+$('#cp').addEventListener('pointerdown',function(e){
+  if(!CUT.erase||!CUT.out)return;
+  e.preventDefault();CUT.erasing=true;
+  var o=CUT.out,ctx=o.getContext('2d');
+  CUT.undo.push(ctx.getImageData(0,0,o.width,o.height));if(CUT.undo.length>5)CUT.undo.shift();
+  try{this.setPointerCapture(e.pointerId);}catch(err){}
+  eraseAt(e);
+});
+$('#cp').addEventListener('pointermove',function(e){if(CUT.erasing){e.preventDefault();eraseAt(e);}});
+function endErase(){if(!CUT.erasing)return;CUT.erasing=false;CUT.quality=inspectWatchImage(CUT.out);$('#btnCutSave').disabled=!Store.canWrite||!CUT.quality.ok;$('#cutNote').textContent='Ластик применён. Проверьте результат на тёмном фоне. '+CUT.quality.message;}
+$('#cp').addEventListener('pointerup',endErase);
+$('#cp').addEventListener('pointercancel',endErase);
+$('#undoErase').addEventListener('click',function(){
+  if(!CUT.out||!CUT.undo.length)return;
+  CUT.out.getContext('2d').putImageData(CUT.undo.pop(),0,0);drawCutPreview();endErase();
+  CUT.quality=inspectWatchImage(CUT.out);$('#btnCutSave').disabled=!Store.canWrite||!CUT.quality.ok;
+});
+$('#resetErase').addEventListener('click',function(){CUT.undo=[];CUT.erasing=false;runCut();});
 function runCut(){
   var r=CUT.rect, k=Math.min(1,1600/Math.max(r.w,r.h));
   var w=Math.max(8,Math.round(r.w*k)), h=Math.max(8,Math.round(r.h*k));
@@ -725,7 +775,7 @@ function runCut(){
   x.putImageData(id,0,0);
   var o=document.createElement('canvas'); o.width=box.w; o.height=box.h;
   o.getContext('2d').drawImage(c,box.x,box.y,box.w,box.h,0,0,box.w,box.h);
-  CUT.out=o;
+  CUT.out=o;CUT.undo=[];CUT.erasing=false;
   CUT.quality=inspectWatchImage(o);
   var s=Math.min(pv.width/box.w,pv.height/box.h);
   px.clearRect(0,0,pv.width,pv.height);
@@ -745,7 +795,7 @@ function openCut(file){
   if(!file) return;
   var im=new Image();
   im.onload=function(){
-    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null; CUT.quality=null;
+    CUT.tol=45;CUT.round=false;$('#rngTol').value=45;$('#outTol').textContent='45';$('#chkRound').checked=false;CUT.img=im; CUT.rect={x:0,y:0,w:im.width,h:im.height}; CUT.out=null; CUT.quality=null;CUT.undo=[];CUT.erase=false;$('#eraseBackground').textContent='Ластик фона: выкл.';$('#eraseBackground').setAttribute('aria-pressed','false');$('#cp').style.touchAction='auto';
     ['inName','inBrand','inPrice','inLink'].forEach(function(id){ $('#'+id).value=''; });
     $('#selGender').value='u';$('#selStyle').value='dress';$('#inName').value='Часы '+(Store.items.length+1);var existing=Store.items.find(function(it){return it.id===REPLACE_ID;});if(existing)$('#inName').value=existing.name;['inName','inBrand','inPrice','inLink','selGender','selStyle'].forEach(function(id){$('#'+id).closest('.fld').hidden=!!existing;});document.querySelector('#v-edit .cut-title').textContent=existing?'Заменить фото':'Новые часы';
     show('edit'); cutCanvasSize(); drawCut(); runCut();
