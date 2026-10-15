@@ -241,7 +241,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
       <div class="cut-ctl">
         <div class="ctl"><label for="rngTol">Допуск фона</label><input id="rngTol" type="range" min="10" max="140" value="45"><output id="outTol">45</output></div>
         <label class="chk-row"><input id="chkRound" type="checkbox"> Оставить только круг (если фон пёстрый)</label>
-        <p class="fit" id="cutNote"></p>
+        <div class="row" style="margin:10px 0"><button type="button" class="btn" id="previewDark">Тёмный фон</button><button type="button" class="btn" id="previewLight">Светлый фон</button><button type="button" class="btn" id="previewCheck">Шахматный фон</button></div><p class="fit" id="cutNote"></p>
         <div class="form-grid">
           <div class="fld"><label for="inName">Название</label><input id="inName" type="text" maxlength="60" placeholder="Например, Seiko 5 Sports"></div>
           <div class="fld-row">
@@ -699,6 +699,13 @@ function runCut(){
   $('#cutNote').textContent += ' '+CUT.quality.message;
   $('#btnCutSave').disabled=!Store.canWrite||!CUT.quality.ok;
 }
+['previewDark','previewLight','previewCheck'].forEach(function(id){
+  $('#'+id).addEventListener('click',function(){
+    var p=$('#cp');
+    p.style.backgroundImage=id==='previewCheck'?'':'none';
+    p.style.backgroundColor=id==='previewDark'?'#15191c':id==='previewLight'?'#f6f6f6':'#e9ecee';
+  });
+});
 function openCut(file){
   if(!file) return;
   var im=new Image();
