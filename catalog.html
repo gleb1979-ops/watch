@@ -392,7 +392,7 @@ function ghBackend(){
     var p=GH.token?readList().then(function(r){ return r.list; }):fetch('watches.json?'+Date.now(),{cache:'no-store'}).then(function(r){ if(r.status===404) return []; if(!r.ok) throw new Error('http'); return r.json(); });
     return p.then(function(rows){
       return (Array.isArray(rows)?rows:[]).filter(function(r){ return r&&r.id&&r.cut&&r.photo; }).sort(function(a,b){ return (b.at||0)-(a.at||0); }).map(function(r){
-        var o=pickFields(r); o.id=String(r.id); o.at=r.at||0; o.cutPath=r.cut; o.photoPath=r.photo;o.thumbUrl=r.thumb||r.cut;o.views=Array.isArray(r.views)?r.views:[{role:"front",cut:r.cut}];
+        var o=pickFields(r); o.id=String(r.id); o.at=r.at||0; o.caseDiameterMm=Number(r.caseDiameterMm)||null; o.reference=r.reference||''; o.sizeStatus=r.sizeStatus||''; o.cutPath=r.cut; o.photoPath=r.photo;o.thumbUrl=r.thumb||r.cut;o.views=Array.isArray(r.views)?r.views:[{role:"front",cut:r.cut}];
         o.cutUrl=pending[o.id]?pending[o.id].cut:r.cut; o.photoUrl=pending[o.id]?pending[o.id].photo:r.photo;
         if(!o.name) o.name='Часы'; return o;
       });
