@@ -622,32 +622,33 @@ function cutPixels(d,w,h,tol,round){
     if(size>bestSize){ bestSize=size; best=id; }
   }
   for(i=0;i<n;i++) if(lab[i]!==best) a[i]=0;
-  // Remove pale, near-neutral background remnants attached at the lower-right
-  // border. Protect the central watch/bracelet region and coloured metal.
-  var fringe=new Uint8Array(n),queue=new Int32Array(n),tail=0,head=0;
-  var minX=Math.floor(w*.61),minY=Math.floor(h*.54);
+  // Clean pale background fragments in the lower-right corner.
+  // Only target connected neutral regions away from the bracelet centre.
+  var fringe=new Uint8Array(n),seen=new Uint8Array(n),queue=new Int32Array(n);
+  var minX=Math.floor(w*.61),minY=Math.floor(h*.62);
   function pale(q){
-    if(!a[q]||fringe[q])return false;
+    if(!a[q])return false;
     var xx=q%w,yy=(q-xx)/w;
     if(xx<minX||yy<minY)return false;
     var j=q*4,r=d[j],g=d[j+1],b=d[j+2];
-    var high=Math.max(r,g,b),low=Math.min(r,g,b);
-    return low>142 && high-low<35;
+    return Math.min(r,g,b)>105&&Math.max(r,g,b)-Math.min(r,g,b)<55;
   }
-  function addPale(q){if(pale(q)){fringe[q]=1;queue[tail++]=q;}}
-  for(x=minX;x<w;x++)addPale((h-1)*w+x);
-  for(y=minY;y<h;y++)addPale(y*w+w-1);
-  while(head<tail){
-    p=queue[head++];var fx=p%w,fy=(p-fx)/w;
-    if(fx>minX)addPale(p-1);
-    if(fx<w-1)addPale(p+1);
-    if(fy>minY)addPale(p-w);
-    if(fy<h-1)addPale(p+w);
+  for(y=minY;y<h;y++)for(x=minX;x<w;x++){
+    var seed=y*w+x;
+    if(seen[seed]||!pale(seed))continue;
+    var head=0,tail=1,touchesOuter=false;
+    queue[0]=seed;seen[seed]=1;
+    while(head<tail){
+      p=queue[head++];var fx=p%w,fy=(p-fx)/w;
+      if(fx>=Math.floor(w*.88)||fy>=Math.floor(h*.90))touchesOuter=true;
+      var nb=[fx>minX?p-1:-1,fx<w-1?p+1:-1,fy>minY?p-w:-1,fy<h-1?p+w:-1];
+      for(var ni=0;ni<4;ni++){var q=nb[ni];if(q>=0&&!seen[q]&&pale(q)){seen[q]=1;queue[tail++]=q;}}
+    }
+    if(touchesOuter&&tail>Math.max(90,n*.0007)){
+      for(var zi=0;zi<tail;zi++)fringe[queue[zi]]=1;
+    }
   }
-  // Small isolated reflections must not trigger an aggressive cut.
-  if(tail>Math.max(160,n*.003)){
-    for(i=0;i<n;i++)if(fringe[i])a[i]=0;
-  }
+  for(i=0;i<n;i++)if(fringe[i])a[i]=0;
   /* смягчаем край: среднее значение прозрачности 3×3 */
   var out=new Uint8Array(n), x0=w, y0=h, x1=-1, y1=-1;
   for(y=0;y<h;y++) for(x=0;x<w;x++){
