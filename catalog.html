@@ -705,7 +705,7 @@ function draw(){
   ctx.save();
   ctx.translate(S.tx.x,S.tx.y); ctx.rotate(S.tx.r*Math.PI/180); ctx.scale(S.tx.s,S.tx.s);
   ctx.transform(FIT.width/100,0,Math.tan(FIT.slant*Math.PI/180),1,0,0);
-  if(window.WatchReal){WatchReal.draw(ctx,w.cut,{width:200,curve:FIT.curve,bandwidth:FIT.bandwidth,bandlength:FIT.bandlength,shadow:FIT.shadow/100});}
+  if(window.WatchReal){WatchReal.draw(ctx,w.cut,{width:200,curve:FIT.curve,bandwidth:FIT.bandwidth,bandlength:FIT.bandlength,shadow:FIT.shadow/100,realism:REALISM_MAX});}
   else{ctx.shadowColor='rgba(20,12,7,'+(FIT.shadow/100)+')';ctx.shadowBlur=5;ctx.shadowOffsetX=1;ctx.shadowOffsetY=3;var cw=200, ch=200*w.cut.height/w.cut.width;ctx.drawImage(w.cut,-cw/2,-ch/2,cw,ch);}
   ctx.restore();ctx.restore();
 }
