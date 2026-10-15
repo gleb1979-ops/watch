@@ -1,353 +1,384 @@
 [
- {
-  "name": "Dominus Skeleton 49mm watch",
-  "brand": "Versace",
-  "price": "$3,046",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv854z9z-hqve6",
-  "at": 1791984222359,
-  "cut": "img/personal-mv854z9z-hqve6-mv9falla-cut.png",
-  "photo": "img/personal-mv854z9z-hqve6-mv9falla-cut.png",
-  "thumb": "img/personal-mv854z9z-hqve6-mv9falla-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv854z9z-hqve6-mv9falla-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-01-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-01-3.webp"
-   }
-  ]
- },
- {
-  "name": "bound 3Link 35mm",
-  "brand": "Daniel Wellington",
-  "price": "$287",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8dgguo-9ot8b",
-  "at": 1791998195280,
-  "cut": "img/collection/collection-02-1.webp",
-  "photo": "img/collection/collection-02-1.webp",
-  "thumb": "img/collection/collection-02-thumb.webp",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/collection/collection-02-1.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-02-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-02-3.webp"
-   }
-  ]
- },
- {
-  "name": "2018 Nautilus 5711/1A-010 Tiffany & Co.\" 40mm watch",
-  "brand": "Patek Philippe",
-  "price": "$335,232",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8dh4hx-f02j2",
-  "at": 1791998225925,
-  "cut": "img/personal-mv8dh4hx-f02j2-mv9f9ph9-cut.png",
-  "photo": "img/personal-mv8dh4hx-f02j2-mv9f9ph9-cut.png",
-  "thumb": "img/personal-mv8dh4hx-f02j2-mv9f9ph9-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv8dh4hx-f02j2-mv9f9ph9-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-03-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-03-3.webp"
-   }
-  ]
- },
- {
-  "name": "Plein Deluxe",
-  "brand": "Philipp Plein",
-  "price": "$1,000",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8dhiml-tgngf",
-  "at": 1791998244237,
-  "cut": "img/collection/collection-04-1.webp",
-  "photo": "img/collection/collection-04-1.webp",
-  "thumb": "img/collection/collection-04-thumb.webp",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/collection/collection-04-1.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-04-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-04-3.webp"
-   }
-  ]
- },
- {
-  "name": "RM 35-02 Rafael Nadal 45mm watch",
-  "brand": "Richard Mille",
-  "price": "$376,088",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8eqfwh-zdstd",
-  "at": 1792000340225,
-  "cut": "img/collection/collection-05-1.webp",
-  "photo": "img/collection/collection-05-1.webp",
-  "thumb": "img/collection/collection-05-thumb.webp",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/collection/collection-05-1.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-05-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-05-3.webp"
-   }
-  ]
- },
- {
-  "name": "2019 pre-owned Nautilus 5711/1R-001 ‘Tiffany & Co.\" 40.5mm",
-  "brand": "Patek Philippe",
-  "price": "$408,564",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8fxhlo-n979d",
-  "at": 1792002348636,
-  "cut": "img/personal-mv8fxhlo-n979d-mv9f8jls-cut.png",
-  "photo": "img/personal-mv8fxhlo-n979d-mv9f8jls-cut.png",
-  "thumb": "img/personal-mv8fxhlo-n979d-mv9f8jls-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv8fxhlo-n979d-mv9f8jls-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-06-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-06-3.webp"
-   }
-  ]
- },
- {
-  "name": "1967 pre-owned GMT-Master 40mm",
-  "brand": "Rolex",
-  "price": "$32,418",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8fzklh-3rwvq",
-  "at": 1792002445829,
-  "cut": "img/personal-mv8fzklh-3rwvq-mv9f92uy-cut.png",
-  "photo": "img/personal-mv8fzklh-3rwvq-mv9f92uy-cut.png",
-  "thumb": "img/personal-mv8fzklh-3rwvq-mv9f92uy-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv8fzklh-3rwvq-mv9f92uy-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-07-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-07-3.webp"
-   }
-  ]
- },
- {
-  "name": "2024 Sky-Dweller fluted bezel 42mm watch",
-  "brand": "Rolex",
-  "price": "$50,075",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8g1bxw-d0kyc",
-  "at": 1792002527924,
-  "cut": "img/collection/collection-08-1.webp",
-  "photo": "img/collection/collection-08-1.webp",
-  "thumb": "img/collection/collection-08-thumb.webp",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/collection/collection-08-1.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-08-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-08-3.webp"
-   }
-  ]
- },
- {
-  "name": "2024 pre-owned Daytona 40mm",
-  "brand": "Rolex",
-  "price": "$53,323",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8g34k2-pxf9i",
-  "at": 1792002611666,
-  "cut": "img/personal-mv8g34k2-pxf9i-mv9f62eb-cut.png",
-  "photo": "img/personal-mv8g34k2-pxf9i-mv9f62eb-cut.png",
-  "thumb": "img/personal-mv8g34k2-pxf9i-mv9f62eb-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv8g34k2-pxf9i-mv9f62eb-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-09-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-09-3.webp"
-   }
-  ]
- },
- {
-  "name": "Datejust 4lmm watch",
-  "brand": "Rolex",
-  "price": "$16,074",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8g5qtu-niivd",
-  "at": 1792002733843,
-  "cut": "img/personal-mv8g5qtu-niivd-mv9b6yo7-cut.png",
-  "photo": "img/personal-mv8g5qtu-niivd-mv9b6yo7-cut.png",
-  "thumb": "img/personal-mv8g5qtu-niivd-mv9b6yo7-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv8g5qtu-niivd-mv9b6yo7-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-10-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-10-3.webp"
-   }
-  ]
- },
- {
-  "name": "2015 pre-owned Sea-Dweller 40mm",
-  "brand": "Rolex",
-  "price": "$12,654",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8g7g6l-41t89",
-  "at": 1792002813357,
-  "cut": "img/personal-mv8g7g6l-41t89-mv9f5jmj-cut.png",
-  "photo": "img/personal-mv8g7g6l-41t89-mv9f5jmj-cut.png",
-  "thumb": "img/personal-mv8g7g6l-41t89-mv9f5jmj-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv8g7g6l-41t89-mv9f5jmj-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-11-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-11-3.webp"
-   }
-  ]
- },
- {
-  "name": "2005 pre-owned Daytona 41mm",
-  "brand": "Rolex",
-  "price": "$50,828",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8gadk1-nih1z",
-  "at": 1792002949921,
-  "cut": "img/personal-mv8gadk1-nih1z-mv9b4why-cut.png",
-  "photo": "img/personal-mv8gadk1-nih1z-mv9b4why-cut.png",
-  "thumb": "img/personal-mv8gadk1-nih1z-mv9b4why-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv8gadk1-nih1z-mv9b4why-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-12-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-12-3.webp"
-   }
-  ]
- },
- {
-  "name": "Gmt master 2 40 mm",
-  "brand": "ROLEX",
-  "price": "104.425",
-  "gender": "u",
-  "style": "dress",
-  "link": "",
-  "id": "personal-mv8gd8f8-ocdzr",
-  "at": 1792003083236,
-  "cut": "img/personal-mv8gd8f8-ocdzr-mv9b49ho-cut.png",
-  "photo": "img/personal-mv8gd8f8-ocdzr-mv9b49ho-cut.png",
-  "thumb": "img/personal-mv8gd8f8-ocdzr-mv9b49ho-thumb.png",
-  "views": [
-   {
-    "role": "front",
-    "cut": "img/personal-mv8gd8f8-ocdzr-mv9b49ho-cut.png"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-13-2.webp"
-   },
-   {
-    "role": "angle",
-    "cut": "img/collection/collection-13-3.webp"
-   }
-  ]
- }
+  {
+    "name": "Dominus Skeleton 49mm watch",
+    "brand": "Versace",
+    "price": "$3,046",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv854z9z-hqve6",
+    "at": 1791984222359,
+    "cut": "img/personal-mv854z9z-hqve6-mv9falla-cut.png",
+    "photo": "img/personal-mv854z9z-hqve6-mv9falla-cut.png",
+    "thumb": "img/personal-mv854z9z-hqve6-mv9falla-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv854z9z-hqve6-mv9falla-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-01-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-01-3.webp"
+      }
+    ],
+    "caseDiameterMm": 49,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "bound 3Link 35mm",
+    "brand": "Daniel Wellington",
+    "price": "$287",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8dgguo-9ot8b",
+    "at": 1791998195280,
+    "cut": "img/collection/collection-02-1.webp",
+    "photo": "img/collection/collection-02-1.webp",
+    "thumb": "img/collection/collection-02-thumb.webp",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/collection/collection-02-1.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-02-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-02-3.webp"
+      }
+    ],
+    "caseDiameterMm": 35,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "2018 Nautilus 5711/1A-010 Tiffany & Co.\" 40mm watch",
+    "brand": "Patek Philippe",
+    "price": "$335,232",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8dh4hx-f02j2",
+    "at": 1791998225925,
+    "cut": "img/personal-mv8dh4hx-f02j2-mv9f9ph9-cut.png",
+    "photo": "img/personal-mv8dh4hx-f02j2-mv9f9ph9-cut.png",
+    "thumb": "img/personal-mv8dh4hx-f02j2-mv9f9ph9-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv8dh4hx-f02j2-mv9f9ph9-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-03-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-03-3.webp"
+      }
+    ],
+    "caseDiameterMm": 40,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "Plein Deluxe",
+    "brand": "Philipp Plein",
+    "price": "$1,000",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8dhiml-tgngf",
+    "at": 1791998244237,
+    "cut": "img/collection/collection-04-1.webp",
+    "photo": "img/collection/collection-04-1.webp",
+    "thumb": "img/collection/collection-04-thumb.webp",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/collection/collection-04-1.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-04-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-04-3.webp"
+      }
+    ]
+  },
+  {
+    "name": "RM 35-02 Rafael Nadal 45mm watch",
+    "brand": "Richard Mille",
+    "price": "$376,088",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8eqfwh-zdstd",
+    "at": 1792000340225,
+    "cut": "img/collection/collection-05-1.webp",
+    "photo": "img/collection/collection-05-1.webp",
+    "thumb": "img/collection/collection-05-thumb.webp",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/collection/collection-05-1.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-05-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-05-3.webp"
+      }
+    ],
+    "caseDiameterMm": 45,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "2019 pre-owned Nautilus 5711/1R-001 ‘Tiffany & Co.\" 40.5mm",
+    "brand": "Patek Philippe",
+    "price": "$408,564",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8fxhlo-n979d",
+    "at": 1792002348636,
+    "cut": "img/personal-mv8fxhlo-n979d-mv9f8jls-cut.png",
+    "photo": "img/personal-mv8fxhlo-n979d-mv9f8jls-cut.png",
+    "thumb": "img/personal-mv8fxhlo-n979d-mv9f8jls-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv8fxhlo-n979d-mv9f8jls-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-06-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-06-3.webp"
+      }
+    ],
+    "caseDiameterMm": 40.5,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "1967 pre-owned GMT-Master 40mm",
+    "brand": "Rolex",
+    "price": "$32,418",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8fzklh-3rwvq",
+    "at": 1792002445829,
+    "cut": "img/personal-mv8fzklh-3rwvq-mv9f92uy-cut.png",
+    "photo": "img/personal-mv8fzklh-3rwvq-mv9f92uy-cut.png",
+    "thumb": "img/personal-mv8fzklh-3rwvq-mv9f92uy-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv8fzklh-3rwvq-mv9f92uy-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-07-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-07-3.webp"
+      }
+    ],
+    "caseDiameterMm": 40,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "2024 Sky-Dweller fluted bezel 42mm watch",
+    "brand": "Rolex",
+    "price": "$50,075",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8g1bxw-d0kyc",
+    "at": 1792002527924,
+    "cut": "img/collection/collection-08-1.webp",
+    "photo": "img/collection/collection-08-1.webp",
+    "thumb": "img/collection/collection-08-thumb.webp",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/collection/collection-08-1.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-08-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-08-3.webp"
+      }
+    ],
+    "caseDiameterMm": 42,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "2024 pre-owned Daytona 40mm",
+    "brand": "Rolex",
+    "price": "$53,323",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8g34k2-pxf9i",
+    "at": 1792002611666,
+    "cut": "img/personal-mv8g34k2-pxf9i-mv9f62eb-cut.png",
+    "photo": "img/personal-mv8g34k2-pxf9i-mv9f62eb-cut.png",
+    "thumb": "img/personal-mv8g34k2-pxf9i-mv9f62eb-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv8g34k2-pxf9i-mv9f62eb-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-09-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-09-3.webp"
+      }
+    ],
+    "caseDiameterMm": 40,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "Datejust 4lmm watch",
+    "brand": "Rolex",
+    "price": "$16,074",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8g5qtu-niivd",
+    "at": 1792002733843,
+    "cut": "img/personal-mv8g5qtu-niivd-mv9b6yo7-cut.png",
+    "photo": "img/personal-mv8g5qtu-niivd-mv9b6yo7-cut.png",
+    "thumb": "img/personal-mv8g5qtu-niivd-mv9b6yo7-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv8g5qtu-niivd-mv9b6yo7-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-10-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-10-3.webp"
+      }
+    ]
+  },
+  {
+    "name": "2015 pre-owned Sea-Dweller 40mm",
+    "brand": "Rolex",
+    "price": "$12,654",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8g7g6l-41t89",
+    "at": 1792002813357,
+    "cut": "img/personal-mv8g7g6l-41t89-mv9f5jmj-cut.png",
+    "photo": "img/personal-mv8g7g6l-41t89-mv9f5jmj-cut.png",
+    "thumb": "img/personal-mv8g7g6l-41t89-mv9f5jmj-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv8g7g6l-41t89-mv9f5jmj-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-11-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-11-3.webp"
+      }
+    ],
+    "caseDiameterMm": 40,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  },
+  {
+    "name": "2005 pre-owned Daytona 41mm",
+    "brand": "Rolex",
+    "price": "$50,828",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8gadk1-nih1z",
+    "at": 1792002949921,
+    "cut": "img/personal-mv8gadk1-nih1z-mv9b4why-cut.png",
+    "photo": "img/personal-mv8gadk1-nih1z-mv9b4why-cut.png",
+    "thumb": "img/personal-mv8gadk1-nih1z-mv9b4why-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv8gadk1-nih1z-mv9b4why-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-12-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-12-3.webp"
+      }
+    ],
+    "sizeStatus": "needs-verification"
+  },
+  {
+    "name": "Gmt master 2 40 mm",
+    "brand": "ROLEX",
+    "price": "104.425",
+    "gender": "u",
+    "style": "dress",
+    "link": "",
+    "id": "personal-mv8gd8f8-ocdzr",
+    "at": 1792003083236,
+    "cut": "img/personal-mv8gd8f8-ocdzr-mv9b49ho-cut.png",
+    "photo": "img/personal-mv8gd8f8-ocdzr-mv9b49ho-cut.png",
+    "thumb": "img/personal-mv8gd8f8-ocdzr-mv9b49ho-thumb.png",
+    "views": [
+      {
+        "role": "front",
+        "cut": "img/personal-mv8gd8f8-ocdzr-mv9b49ho-cut.png"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-13-2.webp"
+      },
+      {
+        "role": "angle",
+        "cut": "img/collection/collection-13-3.webp"
+      }
+    ],
+    "caseDiameterMm": 40,
+    "sizeSource": "catalog-title",
+    "sizeStatus": "needs-reference-verification"
+  }
 ]
