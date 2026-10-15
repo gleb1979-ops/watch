@@ -208,7 +208,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 @media(max-width:719px){.stage{width:100%;max-width:none}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
 .watch-switch{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:end}.watch-switch .btn{font-size:.8rem;padding-inline:8px;min-height:44px}.watch-switch .fld{font-size:.8rem}.watch-switch select{min-height:44px;max-width:100%}.topbar .brand{font-size:clamp(.78rem,2.5vw,1rem);letter-spacing:.07em;white-space:normal;line-height:1.25;min-width:0;max-width:100%}
 </style>
-<script src="watch-fit.js?v=20261014u"></script>
+<script src="watch-fit.js?v=20261015-autofit2"></script>
 <script src="wrist.js?v=20261014u" defer></script>
 <script src="locale.js?v=20261015photo1" defer></script>
 <script src="watch-real.js?v=20261015realism2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014u"><script src="fitting-workspace.js?v=20261014u" defer></script><script src="made-by-byd.js?v=20261014w" defer></script></head>
@@ -825,7 +825,7 @@ if(window.parent!==window){
  parent.postMessage({type:'watch-ready'},new URL(document.baseURI).origin);
 }
 
-var fitting=WatchFit.create({photo:function(){return S.photo;},watch:function(){var w=SW[S.pick];return w&&w.cut;},tx:function(){return S.tx;},width:CW,height:CH,status:$('#autoFitStatus'),button:$('#autoFit'),mark:$('#markWrist'),lock:function(){editMode('watch');},draw:draw,sync:syncCtl,defaults:function(){FIT.width=100;FIT.curve=40;FIT.slant=0;FIT.shadow=25;FIT.bandwidth=100;FIT.bandlength=100;['Width','Bandwidth','Bandlength','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});}});
+var fitting=WatchFit.create({photo:function(){return S.photo;},item:function(){return Store.items.find(function(it){return it.id===S.pick;});},watch:function(){var w=SW[S.pick];return w&&w.cut;},tx:function(){return S.tx;},width:CW,height:CH,status:$('#autoFitStatus'),button:$('#autoFit'),mark:$('#markWrist'),lock:function(){editMode('watch');},draw:draw,sync:syncCtl,defaults:function(){FIT.width=100;FIT.curve=40;FIT.slant=0;FIT.shadow=25;FIT.bandwidth=100;FIT.bandlength=100;['Width','Bandwidth','Bandlength','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});}});
 window.addEventListener('watch-render-ready',draw);
 editMode('watch');
 initStore();
