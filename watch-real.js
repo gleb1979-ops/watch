@@ -85,6 +85,8 @@ function draw(ctx,img,opt){
   var P=prepare(img),cw=opt.width||200,ch=cw*P.h/P.w;
   var curve=Math.max(0,Math.min(100,opt.curve==null?40:opt.curve))/100;
   var shadow=Math.max(0,Math.min(1,opt.shadow==null?.25:opt.shadow));
+  var enhanced=opt.realism===true;
+  if(enhanced)shadow=Math.min(.55,shadow*1.10);
   var amb=opt.ambient===false?null:ambient(ctx,cw,ch);
   if(amb)shadow=Math.min(1,shadow*Math.max(.8,Math.min(1.2,.85+amb.contrast*.003))); 
   var m=ctx.getTransform(),sc=Math.max(.2,Math.hypot(m.a,m.b));
@@ -138,7 +140,7 @@ function draw(ctx,img,opt){
   // A broad reflection across the bracelet, clipped to its existing silhouette.
   // Ambient contrast controls strength; original metal colour and texture stay visible.
   wx.globalCompositeOperation='source-atop';wx.globalAlpha=1;
-  var reflection=amb?Math.max(.035,Math.min(.11,.035+amb.contrast*.0005)):.065;
+  var reflection=amb?Math.max(.035,Math.min(enhanced?.14:.11,.035+amb.contrast*.0005)):.065;
   var metal=wx.createLinearGradient(0,0,W,0);
   metal.addColorStop(0,'rgba(255,255,255,0)');
   metal.addColorStop(.25,'rgba(255,255,255,0)');
@@ -170,7 +172,7 @@ function draw(ctx,img,opt){
   // Faint glass reflection over the case.
   wx.globalCompositeOperation='source-atop';
   var cy0=(top-mid-pT.y)*k,cy1=(bot-mid-pT.y)*k,gl=wx.createLinearGradient(W*.15,cy0,W*.75,cy1);
-  gl.addColorStop(0,'rgba(255,255,255,0)');gl.addColorStop(.32,'rgba(255,255,255,.14)');gl.addColorStop(.40,'rgba(255,255,255,.035)');gl.addColorStop(.62,'rgba(255,255,255,0)');
+  gl.addColorStop(0,'rgba(255,255,255,0)');gl.addColorStop(.32,'rgba(255,255,255,'+(enhanced?.17:.14)+')');gl.addColorStop(.40,'rgba(255,255,255,.035)');gl.addColorStop(.62,'rgba(255,255,255,0)');
   wx.fillStyle=gl;wx.fillRect(0,cy0,W,cy1-cy0);
   // Broad soft-box reflection: gently domed glass, clipped to existing watch pixels.
   // Nothing is painted into transparent areas or substituted for the original dial.
