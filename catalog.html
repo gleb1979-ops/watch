@@ -200,7 +200,9 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 @media(prefers-reduced-motion:reduce){.btn{transition:none}.btn:hover{transform:none}}
 
 .language-picker{display:inline-flex;gap:3px;align-items:center;direction:ltr}.language-picker button{background:transparent;border:1px solid var(--line);border-radius:5px;color:var(--muted);font:inherit;font-size:.75rem;min-height:40px;padding:7px 10px;cursor:pointer}.language-picker button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}[dir="rtl"] .opt{text-align:right;align-items:flex-start}[dir="rtl"] .cal li{border-left-width:1px;border-right-width:4px}[dir="rtl"] .ctl output{text-align:left}[dir="rtl"] .hero h1{font-family:var(--f-display);letter-spacing:-.015em}[dir="rtl"] .track{direction:ltr}[dir="rtl"] .brand{direction:ltr}[dir="rtl"] .badge{left:auto;right:10px}.cat-pic img{object-fit:contain}.form-note{padding:14px;border:1px solid var(--line);border-radius:8px;margin-bottom:20px;color:var(--muted);font-size:.85rem}body[data-embed="true"] .language-picker{display:none}
-.photo-fit{border:1px solid var(--line);border-radius:10px;padding:14px}.photo-fit summary{cursor:pointer;font-weight:600}.photo-fit .ctl{margin-block:12px}.photo-fit .hint{margin-block:10px}
+.photo-fit{border:1px solid var(--line);border-radius:10px;padding:14px}
+/* iOS Safari: keep numeric calibration input full-width and >=16px to avoid focus zoom/scroll displacement. */
+.photo-fit .ctl:has(#wristWidthMm){display:flex;flex-direction:column;align-items:stretch;gap:6px}.photo-fit #wristWidthMm{display:block;width:100%;max-width:100%;min-width:0;min-height:46px;padding:10px 12px;font-size:16px;line-height:24px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}.photo-fit summary{cursor:pointer;font-weight:600}.photo-fit .ctl{margin-block:12px}.photo-fit .hint{margin-block:10px}
 
 /* Shared fitting workspace: preserve the canvas aspect ratio for accurate gestures. */
 .try-grid{grid-template-columns:1fr;gap:24px}.stage{max-width:760px;border-radius:16px}.stage canvas{width:100%;height:auto;max-height:none;aspect-ratio:3/4}
@@ -827,7 +829,7 @@ if(window.parent!==window){
 }
 
 var fitting=WatchFit.create({wristMm:function(){return Number($('#wristWidthMm').value);},photo:function(){return S.photo;},item:function(){return Store.items.find(function(it){return it.id===S.pick;});},watch:function(){var w=SW[S.pick];return w&&w.cut;},tx:function(){return S.tx;},width:CW,height:CH,status:$('#autoFitStatus'),button:$('#autoFit'),mark:$('#markWrist'),lock:function(){editMode('watch');},draw:draw,sync:syncCtl,defaults:function(){FIT.width=100;FIT.curve=40;FIT.slant=0;FIT.shadow=25;FIT.bandwidth=100;FIT.bandlength=100;['Width','Bandwidth','Bandlength','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});}});
-$('#applyWristMm').addEventListener('click',function(){if(fitting)fitting.changed();});
+$('#applyWristMm').addEventListener('click',function(){var el=$('#wristWidthMm');if(el&&document.activeElement===el)el.blur();if(fitting)fitting.changed();});
 window.addEventListener('watch-render-ready',draw);
 editMode('watch');
 initStore();
