@@ -86,7 +86,7 @@ function draw(ctx,img,opt){
   var curve=Math.max(0,Math.min(100,opt.curve==null?40:opt.curve))/100;
   var shadow=Math.max(0,Math.min(1,opt.shadow==null?.25:opt.shadow));
   var enhanced=opt.realism===true;
-  if(enhanced)shadow=Math.min(.55,shadow*1.10);
+  if(enhanced)shadow=Math.min(.55,shadow*1.15);
   var amb=opt.ambient===false?null:ambient(ctx,cw,ch);
   if(amb)shadow=Math.min(1,shadow*Math.max(.8,Math.min(1.2,.85+amb.contrast*.003))); 
   var m=ctx.getTransform(),sc=Math.max(.2,Math.hypot(m.a,m.b));
@@ -94,7 +94,7 @@ function draw(ctx,img,opt){
   // Projection: case stays flat; bracelet beyond it wraps around a cylinder.
   var top=P.top*P.h,bot=P.bot*P.h,mid=(top+bot)/2;
   var bandLength=Math.max(.5,Math.min(1.5,(opt.bandlength==null?100:opt.bandlength)/100)),bandWidth=Math.max(.55,Math.min(1.45,(opt.bandwidth==null?100:opt.bandwidth)/100));
-  var R=curve>0?P.w*P.caseW*(.62/curve):1e9; // wrist radius in image px
+  var R=curve>0?P.w*P.caseW*((enhanced?.54:.62)/curve):1e9; // wrist radius in image px
   var lim=Math.PI/2*.96;
   function proj(y){ // returns {y, cos} in image px relative to case centre
     var s=y<top?top-y:y>bot?y-bot:0,sign=y<top?-1:1;
@@ -112,7 +112,7 @@ function draw(ctx,img,opt){
   for(y=0;y<P.h;y+=step){
     var h2=Math.min(step,P.h-y);a=proj(y);b=proj(y+h2);
     yy0=(a.y-pT.y)*k;yy1=(b.y-pT.y)*k;if(yy1-yy0<.05)continue;
-    taper=1-(1-(a.c+b.c)/2)*.10; // slight narrowing as the band turns away
+    taper=1-(1-(a.c+b.c)/2)*(enhanced?.24:.10); // slight narrowing as the band turns away
     var blend=Math.min(1,Math.max(0,y<top?(top-y)/(P.h*.05):y>bot?(y-bot)/(P.h*.05):0));
     var dw=P.w*k*taper*(1+(bandWidth-1)*blend);
     wx.drawImage(P.img,0,y,P.w,h2,(W-dw)/2,yy0,dw,yy1-yy0+.25);
@@ -120,10 +120,10 @@ function draw(ctx,img,opt){
   wx.globalCompositeOperation='source-atop';
   // Shade: bracelet darkens where it turns away from the light.
   var gy=wx.createLinearGradient(0,0,0,H),cTop=(top-mid-pT.y)*k/H,cBot=(bot-mid-pT.y)*k/H;
-  gy.addColorStop(0,'rgba(0,0,0,'+(.55*curve+.05)+')');
+  gy.addColorStop(0,'rgba(0,0,0,'+((enhanced?.67:.55)*curve+.05)+')');
   gy.addColorStop(Math.max(0,Math.min(1,cTop)),'rgba(0,0,0,0)');
   gy.addColorStop(Math.max(0,Math.min(1,cBot)),'rgba(0,0,0,0)');
-  gy.addColorStop(1,'rgba(0,0,0,'+(.62*curve+.07)+')');
+  gy.addColorStop(1,'rgba(0,0,0,'+((enhanced?.75:.62)*curve+.07)+')');
   wx.fillStyle=gy;wx.fillRect(0,0,W,H);
   // Side shading across the width (rounded wrist and case flanks).
   var gx=wx.createLinearGradient(0,0,W,0);
@@ -189,7 +189,7 @@ function draw(ctx,img,opt){
   ctx.shadowColor='transparent';
   // Soft contact shadow, shaped like the watch, slightly below it.
   if(shadow>0){
-    var bl=Math.max(2,cw*.042*sc),off=cw*.019;
+    var bl=Math.max(2,cw*(enhanced?.037:.042)*sc),off=cw*.019;
     ctx.save();
     ctx.shadowColor='rgba(15,8,4,'+Math.min(.9,shadow*1.35)+')';
     ctx.shadowBlur=bl;
@@ -201,11 +201,11 @@ function draw(ctx,img,opt){
     ctx.restore();
     // Tight contact line right under the edges.
     var o2=cw*.008;
-    ctx.save();ctx.shadowColor='rgba(0,0,0,'+Math.min(.75,shadow*1.8)+')';ctx.shadowBlur=Math.max(1,cw*.009*sc);
+    ctx.save();ctx.shadowColor='rgba(0,0,0,'+Math.min(.75,shadow*1.8)+')';ctx.shadowBlur=Math.max(1,cw*(enhanced?.012:.009)*sc);
     ctx.shadowOffsetX=far*m.a+o2*m.c;ctx.shadowOffsetY=far*m.b+o2*m.d;ctx.translate(-far,0);ctx.drawImage(work,dx,dy,outputWidth,dh);ctx.restore();
   }
   // Brightness matched to the scene.
-  var light=opt.light!=null?Math.max(.55,Math.min(1.5,opt.light)):amb?Math.max(.82,Math.min(1.08,.985+(amb.light-150)*.001)):1;
+  var light=opt.light!=null?Math.max(.55,Math.min(1.5,opt.light)):amb?Math.max(enhanced?.78:.82,Math.min(enhanced?1.04:1.08,(enhanced?.955:.985)+(amb.light-150)*.001)):1;
   var hasFilter='filter' in ctx;
   if(hasFilter&&Math.abs(light-1)>.01)ctx.filter='brightness('+light+')';
   ctx.drawImage(work,dx,dy,outputWidth,dh);
