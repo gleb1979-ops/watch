@@ -1,7 +1,7 @@
 /* Shared photo wrist placement for the catalog, personal collection and photo editor. */
 (function(){'use strict';
 window.WatchFit={create:function(o){
- var serial=0,anchor=null,marks=null;
+ var serial=0,anchor=null,marks=null,manualFactor=1,baseScale=1;
  function busy(value){o.button.disabled=value;o.button.setAttribute&&o.button.setAttribute('aria-busy',String(value));var lang=document.documentElement&&document.documentElement.lang||'ru';o.button.textContent=value?(lang==='he'?'מחפשים את פרק כף היד…':lang==='en'?'Finding wrist…':'Ищем запястье…'):(lang==='he'?'התאמה אוטומטית':lang==='en'?'Automatic fit':'Автоматическая посадка');}
  function status(s){o.status.textContent=s;}
  function cancel(){serial++;busy(false);}
@@ -31,7 +31,8 @@ window.WatchFit={create:function(o){
    var paperScale=Number(o.paperScale&&o.paperScale(g.x,g.y));
    // A4 gives photo pixels/mm. Otherwise use measured wrist width or the photo estimate.
    var desired=(paperScale>0&&Number.isFinite(paperScale)?paperScale*caseDiameter():wristWidth*(caseDiameter()/referenceMm));
-   tx.s=Math.max(.4,Math.min(3.2,desired/Math.max(40,caseWidth)));
+   baseScale=desired/Math.max(40,caseWidth);
+   tx.s=Math.max(.15,Math.min(12,baseScale*manualFactor));
    if(o.report)o.report({mode:paperScale>0?'A4':'estimate',pxPerMm:paperScale,diameterMm:caseDiameter(),targetPx:desired,renderPx:caseWidth*tx.s});
   }
   o.sync();o.draw();
@@ -54,10 +55,11 @@ window.WatchFit={create:function(o){
  document.querySelectorAll('input[type=range]').forEach(function(el){el.addEventListener('input',cancel);});
  o.button.onclick=detect;
  o.mark.onclick=function(){if(!o.photo()){status('Сначала загрузите фото руки.');return;}cancel();o.lock();marks=[];status('Коснитесь двух противоположных краёв запястья там, где будет браслет.');};
- return {photoLoaded:function(){cancel();anchor=null;marks=null;o.defaults();detect();},detect:detect,cancel:cancel,
+ return {photoLoaded:function(){cancel();anchor=null;marks=null;manualFactor=1;o.defaults();detect();},detect:detect,cancel:cancel,
   live:function(g){if(!g)return false;marks=null;place(g);return true;},
   hide:function(){cancel();marks=null;},
   changed:function(){if(anchor)place(anchor);},
+  manualUpdated:function(){var t=o.tx();if(anchor){anchor.x=t.x;anchor.y=t.y;anchor.angle=t.r;manualFactor=baseScale>0?t.s/baseScale:1;}},
   point:function(p){if(!marks){cancel();return false;}marks.push(p);if(marks.length===1){status('Теперь коснитесь противоположного края запястья.');return true;}
    var a=marks[0],b=marks[1],width=Math.hypot(b.x-a.x,b.y-a.y);marks=null;
    if(width<25){status('Точки слишком близко. Нажмите «Указать запястье» ещё раз.');return true;}
