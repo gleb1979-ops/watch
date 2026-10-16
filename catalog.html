@@ -696,7 +696,7 @@ $('#btnShot').addEventListener('click',function(){
   if(!LIVE.on) return;
   var c=document.createElement('canvas'); c.width=CW*PX; c.height=CH*PX;
   var x=c.getContext('2d'); x.setTransform(PX,0,0,PX,0,0); drawCover(x,vid,LIVE.face==='user');
-  var im=new Image(); im.onload=function(){ S.photo=im; stopLive();editMode('watch');resetView();resetTx();fitting.photoLoaded();draw();toast('Кадр снят. Подбираем посадку часов.'); };
+  var im=new Image(); im.onload=function(){ S.photo=im; stopLive();fitting.cancel();editMode('watch');draw();$('#autoFitStatus').textContent='Положение и масштаб из камеры сохранены. Для нового определения запястья нажмите «Автоматическая посадка».';toast('Кадр снят. Посадка часов сохранена без изменений.'); };
   im.src=c.toDataURL('image/jpeg',.95);
 });
 var a4Points=[],a4Capture=false,a4Ready=false;
