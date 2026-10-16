@@ -212,7 +212,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 @media(max-width:719px){.stage{width:min(100%, calc(66dvh * .75));margin-inline:auto;max-width:none}.stage canvas{display:block;width:100%;height:auto;aspect-ratio:3/4}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
 .watch-switch{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:end}.watch-switch .btn{font-size:.8rem;padding-inline:8px;min-height:44px}.watch-switch .fld{font-size:.8rem}.watch-switch select{min-height:44px;max-width:100%}.topbar .brand{font-size:clamp(.78rem,2.5vw,1rem);letter-spacing:.07em;white-space:normal;line-height:1.25;min-width:0;max-width:100%}
 </style>
-<script src="watch-fit.js?v=20261015-a4metrics"></script>
+<script src="watch-fit.js?v=20261016-unified1"></script>
 <script src="wrist.js?v=20261016-fitforearm" defer></script>
 <script src="locale.js?v=20261015photo1" defer></script>
 <script src="watch-real.js?v=20261015realism2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014u"><script src="fitting-workspace.js?v=20261014u" defer></script><script src="made-by-byd.js?v=20261014w" defer></script></head>
@@ -676,7 +676,23 @@ function stopLive(){if($('#scannerGuide'))$('#scannerGuide').hidden=true;
   try{ vid.srcObject=null; }catch(e){}
   var a=$('#btnShot'); if(a){ a.hidden=true; $('#btnFlip').hidden=true; $('#btnLive').textContent='Живая камера'; }
 }
-function loopLive(){ if(!LIVE.on) return; draw(); LIVE.raf=requestAnimationFrame(loopLive); }
+var LIVE_FIT={busy:false,last:0,detected:false};
+function loopLive(){
+ if(!LIVE.on)return;
+ draw();
+ var now=Date.now();
+ if(!LIVE_FIT.busy&&now-LIVE_FIT.last>1600&&vid.videoWidth>0&&window.WristDetection&&typeof fitting!=='undefined'){
+  LIVE_FIT.busy=true;LIVE_FIT.last=now;
+  var snapshot=document.createElement('canvas');snapshot.width=CW;snapshot.height=CH;
+  var sc=snapshot.getContext('2d');drawCover(sc,vid,LIVE.face==='user');
+  WristDetection.detect(snapshot).then(function(g){
+   if(!LIVE.on||!g)return;
+   LIVE_FIT.detected=true;
+   fitting.live({x:g.x,y:g.y,width:g.width,angle:g.angle});
+  }).catch(function(){}).finally(function(){LIVE_FIT.busy=false;});
+ }
+ LIVE.raf=requestAnimationFrame(loopLive);
+}
 function startLive(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){ toast('Камера недоступна в этом браузере. Используйте «Сфотографировать».'); return; }
   stopLive(); var request=LIVE.request;
@@ -685,7 +701,7 @@ function startLive(){
     LIVE.stream=st; vid.srcObject=st; return vid.play();
   }).then(function(){
     if(request!==LIVE.request)return;
-    LIVE.on=true; S.photo=null; S.tx={x:CW/2,y:CH*.72,s:.75,r:0};syncCtl();$('#demoBadge').hidden=true; $('#scannerGuide').hidden=false;
+    LIVE_FIT.last=0;LIVE_FIT.busy=false;LIVE_FIT.detected=false;LIVE.on=true; S.photo=null; S.tx={x:CW/2,y:CH*.72,s:.75,r:0};syncCtl();$('#demoBadge').hidden=true; $('#scannerGuide').hidden=false;
     $('#btnShot').hidden=false; $('#btnFlip').hidden=false; $('#btnLive').textContent='Выключить камеру';
     loopLive();
   }).catch(function(){ if(request!==LIVE.request)return; stopLive(); toast('Нет доступа к камере. Разрешите её в настройках браузера или используйте «Сфотографировать».'); });
