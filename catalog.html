@@ -212,7 +212,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 @media(max-width:719px){.stage{width:min(100%, calc(66dvh * .75));margin-inline:auto;max-width:none}.stage canvas{display:block;width:100%;height:auto;aspect-ratio:3/4}.ctl{grid-template-columns:100px 1fr 44px}.panel{gap:18px}}
 .watch-switch{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:end}.watch-switch .btn{font-size:.8rem;padding-inline:8px;min-height:44px}.watch-switch .fld{font-size:.8rem}.watch-switch select{min-height:44px;max-width:100%}.topbar .brand{font-size:clamp(.78rem,2.5vw,1rem);letter-spacing:.07em;white-space:normal;line-height:1.25;min-width:0;max-width:100%}
 </style>
-<script src="watch-fit.js?v=20261016-unified1"></script>
+<script src="watch-fit.js?v=20261016-manual2"></script>
 <script src="wrist.js?v=20261016-fitforearm" defer></script>
 <script src="locale.js?v=20261015photo1" defer></script>
 <script src="watch-real.js?v=20261015realism2" defer></script><link rel="stylesheet" href="fitting-workspace.css?v=20261014u"><script src="fitting-workspace.js?v=20261014u" defer></script><script src="made-by-byd.js?v=20261014w" defer></script></head>
@@ -309,7 +309,7 @@ a{color:var(--accent)}.link,.toplink{color:var(--muted)}.btn{border-radius:6px;m
 <div class="ctl"><label for="fitShadow">Тень на руке</label><input id="fitShadow" type="range" min="0" max="70" value="25"><output id="fitShadowOut">25%</output></div>
 <button class="btn" id="fitReset" type="button">Сбросить посадку</button>
 <p class="hint">Поворот общей фотографии сохраняет положение часов на руке. Это фотографическая примерка; вид сбоку не создаётся автоматически.</p></details>
-<div class="ctl"><label for="rngScale">Размер</label><input id="rngScale" type="range" min="40" max="320" value="150"><output id="outScale">1.5×</output></div>
+<div class="ctl"><label for="rngScale">Размер</label><input id="rngScale" type="range" min="15" max="1200" value="150"><output id="outScale">1.5×</output></div>
           <div class="ctl"><label for="rngRot">Поворот</label><input id="rngRot" type="range" min="-180" max="180" value="0"><output id="outRot">0°</output></div>
           <div class="row">
             <button class="btn" id="btnReset" type="button">Сбросить положение</button>
@@ -804,8 +804,8 @@ function setMaxRealism(on){
 $('#maxRealism').addEventListener('click',function(){setMaxRealism(!REALISM_MAX);});
 $('#fitReset').addEventListener('click',function(){REALISM_MAX=false;$('#maxRealism').textContent='Максимальный реализм';$('#maxRealism').setAttribute('aria-pressed','false');$('#realismState').textContent='Стандартная примерка';FIT={width:100,curve:40,bandwidth:100,bandlength:100,slant:0,shadow:25};['Width','Bandwidth','Bandlength','Curve','Slant','Shadow'].forEach(function(n){$('#fit'+n).value=FIT[n.toLowerCase()];$('#fit'+n+'Out').textContent=FIT[n.toLowerCase()]+(n==='Slant'?'°':'%');});draw();});
 
-$('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; syncCtl(); draw(); });
-$('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; syncCtl(); draw(); });
+$('#rngScale').addEventListener('input',function(e){ S.tx.s=e.target.value/100; if(fitting)fitting.manualUpdated();syncCtl();draw(); });
+$('#rngRot').addEventListener('input',function(e){ S.tx.r=+e.target.value; if(fitting)fitting.manualUpdated();syncCtl();draw(); });
 
 /* Жесты: один палец двигает, два пальца меняют размер и поворот */
 var ptrs={}, gesture=null;
@@ -816,18 +816,18 @@ function beginGesture(){var ids=Object.keys(ptrs).slice(0,2),ps=ids.map(function
 function wrapAngle(a){return ((a+180)%360+360)%360-180;}
 function keepFitVisible(){
   if(!Number.isFinite(S.tx.x)||!Number.isFinite(S.tx.y)||!Number.isFinite(S.tx.s)||!Number.isFinite(S.tx.r)){resetTx();return;}
-  S.tx.s=Math.min(3.2,Math.max(.4,S.tx.s));
+  S.tx.s=Math.min(12,Math.max(.15,S.tx.s));
   S.tx.x=Math.min(CW-55,Math.max(55,S.tx.x));
   S.tx.y=Math.min(CH-55,Math.max(55,S.tx.y));
 }
 
-var TOUCH_EDIT=false;$('#touchEdit').addEventListener('click',function(){TOUCH_EDIT=!TOUCH_EDIT;cv.classList.toggle('touch-edit',TOUCH_EDIT);this.setAttribute('aria-pressed',String(TOUCH_EDIT));this.textContent=TOUCH_EDIT?'Передвинуть часы пальцем: вкл.':'Передвинуть часы пальцем: выкл.';});
-cv.addEventListener('pointerdown',function(e){if(e.button&&e.button!==0)return;var pt=localPoint(cpt(e));if(a4Capture){a4Points.push(pt);e.preventDefault();if(a4Points.length===4){a4Capture=false;a4Ready=true;var mmScale=a4PixelsPerMm();if(!(mmScale>0)){a4Ready=false;$('#a4Metrics').textContent='A4: ошибка пропорций. Отметьте четыре угла ещё раз.';$('#a4Status').textContent='Калибровка не принята. Повторите выбор четырёх углов.';}else{$('#a4Metrics').textContent='A4: '+mmScale.toFixed(2)+' пикс./мм · выполняется автоматическая посадка…';$('#a4Status').textContent='A4 подтверждён. Размер корпуса рассчитывается по листу.';if(fitting)fitting.detect();}}else{$('#a4Status').textContent='Угол '+a4Points.length+'/4. Дальше отмечайте по часовой стрелке.';}draw();return;}if(fitting.point(pt)){e.preventDefault();return;}if(e.pointerType==='touch'&&!TOUCH_EDIT)return;if(EDIT==='watch'&&Math.hypot(pt.x-S.tx.x,pt.y-S.tx.y)>Math.max(85,115*S.tx.s)){return;}e.preventDefault();cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=cpt(e);beginGesture();});
+var TOUCH_EDIT=true;cv.classList.add('touch-edit');$('#touchEdit').textContent='Передвинуть часы пальцем: вкл.';$('#touchEdit').setAttribute('aria-pressed','true');$('#touchEdit').addEventListener('click',function(){TOUCH_EDIT=!TOUCH_EDIT;cv.classList.toggle('touch-edit',TOUCH_EDIT);this.setAttribute('aria-pressed',String(TOUCH_EDIT));this.textContent=TOUCH_EDIT?'Передвинуть часы пальцем: вкл.':'Передвинуть часы пальцем: выкл.';});
+cv.addEventListener('pointerdown',function(e){if(e.button&&e.button!==0)return;var pt=localPoint(cpt(e));if(a4Capture){a4Points.push(pt);e.preventDefault();if(a4Points.length===4){a4Capture=false;a4Ready=true;var mmScale=a4PixelsPerMm();if(!(mmScale>0)){a4Ready=false;$('#a4Metrics').textContent='A4: ошибка пропорций. Отметьте четыре угла ещё раз.';$('#a4Status').textContent='Калибровка не принята. Повторите выбор четырёх углов.';}else{$('#a4Metrics').textContent='A4: '+mmScale.toFixed(2)+' пикс./мм · выполняется автоматическая посадка…';$('#a4Status').textContent='A4 подтверждён. Размер корпуса рассчитывается по листу.';if(fitting)fitting.detect();}}else{$('#a4Status').textContent='Угол '+a4Points.length+'/4. Дальше отмечайте по часовой стрелке.';}draw();return;}if(fitting.point(pt)){e.preventDefault();return;}if(e.pointerType==='touch'&&!TOUCH_EDIT)return;e.preventDefault();cv.setPointerCapture(e.pointerId);ptrs[e.pointerId]=cpt(e);beginGesture();});
 cv.addEventListener('pointermove',function(e){if(!ptrs[e.pointerId]||!gesture)return;e.preventDefault();ptrs[e.pointerId]=cpt(e);var g=gesture,t=EDIT==='watch'?S.tx:VIEW,ps=g.ids.map(function(id){return activePoint(ptrs[id]);}),a=g.ps[0],b=ps[0];
-if(ps.length===1){t.x=g.tx.x+b.x-a.x;t.y=g.tx.y+b.y-a.y;}else{var a2=g.ps[1],b2=ps[1],old={x:(a.x+a2.x)/2,y:(a.y+a2.y)/2},now={x:(b.x+b2.x)/2,y:(b.y+b2.y)/2};var d=Math.hypot(a2.x-a.x,a2.y-a.y),ratio=d>1?Math.hypot(b2.x-b.x,b2.y-b.y)/d:1;var angle=wrapAngle((Math.atan2(b2.y-b.y,b2.x-b.x)-Math.atan2(a2.y-a.y,a2.x-a.x))*180/Math.PI);t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,g.tx.s*ratio));ratio=t.s/g.tx.s;var rad=angle*Math.PI/180,x=g.tx.x-old.x,y=g.tx.y-old.y;t.x=now.x+ratio*(x*Math.cos(rad)-y*Math.sin(rad));t.y=now.y+ratio*(x*Math.sin(rad)+y*Math.cos(rad));t.r=wrapAngle(g.tx.r+angle);}if(EDIT==='watch')keepFitVisible();syncCtl();syncView();draw();});
+if(ps.length===1){t.x=g.tx.x+b.x-a.x;t.y=g.tx.y+b.y-a.y;}else{var a2=g.ps[1],b2=ps[1],old={x:(a.x+a2.x)/2,y:(a.y+a2.y)/2},now={x:(b.x+b2.x)/2,y:(b.y+b2.y)/2};var d=Math.hypot(a2.x-a.x,a2.y-a.y),ratio=d>1?Math.hypot(b2.x-b.x,b2.y-b.y)/d:1;var angle=wrapAngle((Math.atan2(b2.y-b.y,b2.x-b.x)-Math.atan2(a2.y-a.y,a2.x-a.x))*180/Math.PI);t.s=Math.min(EDIT==='watch'?12:4,Math.max(EDIT==='watch'?.15:.25,g.tx.s*ratio));ratio=t.s/g.tx.s;var rad=angle*Math.PI/180,x=g.tx.x-old.x,y=g.tx.y-old.y;t.x=now.x+ratio*(x*Math.cos(rad)-y*Math.sin(rad));t.y=now.y+ratio*(x*Math.sin(rad)+y*Math.cos(rad));t.r=wrapAngle(g.tx.r+angle);}if(EDIT==='watch'){keepFitVisible();if(fitting)fitting.manualUpdated();}syncCtl();syncView();draw();});
 function endPtr(e){delete ptrs[e.pointerId];beginGesture();}
 cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);cv.addEventListener('lostpointercapture',endPtr);
-cv.addEventListener('wheel',function(e){e.preventDefault();var t=EDIT==='watch'?S.tx:VIEW,p=activePoint(cpt(e)),old=t.s;t.s=Math.min(EDIT==='watch'?3.2:4,Math.max(EDIT==='watch'?.4:.25,old*Math.exp(-e.deltaY*.0015)));var k=t.s/old;t.x=p.x+(t.x-p.x)*k;t.y=p.y+(t.y-p.y)*k;if(EDIT==='watch')keepFitVisible();syncCtl();syncView();draw();},{passive:false});
+cv.addEventListener('wheel',function(e){e.preventDefault();var t=EDIT==='watch'?S.tx:VIEW,p=activePoint(cpt(e)),old=t.s;t.s=Math.min(EDIT==='watch'?12:4,Math.max(EDIT==='watch'?.15:.25,old*Math.exp(-e.deltaY*.0015)));var k=t.s/old;t.x=p.x+(t.x-p.x)*k;t.y=p.y+(t.y-p.y)*k;if(EDIT==='watch')keepFitVisible();syncCtl();syncView();draw();},{passive:false});
 function syncView(){$('#sceneScale').value=Math.round(VIEW.s*100);$('#sceneScaleOut').textContent=VIEW.s.toFixed(1)+'×';$('#sceneRot').value=Math.round(VIEW.r);$('#sceneRotOut').textContent=Math.round(VIEW.r)+'°';}
 function resetView(){VIEW={x:CW/2,y:CH/2,s:1,r:0};syncView();}
 function editMode(mode){Object.keys(ptrs).forEach(function(id){try{cv.releasePointerCapture(+id);}catch(e){}});EDIT=mode;['sceneScale','sceneRot','resetScene'].forEach(function(id){$('#'+id).disabled=mode==='watch';});ptrs={};gesture=null;['Watch','Scene'].forEach(function(n){var b=$('#mode'+n),on=mode===(n==='Watch'?'watch':'scene');b.setAttribute('aria-pressed',on);b.classList.toggle('btn-primary',on);});}
