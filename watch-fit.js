@@ -55,6 +55,7 @@ window.WatchFit={create:function(o){
  o.button.onclick=detect;
  o.mark.onclick=function(){if(!o.photo()){status('Сначала загрузите фото руки.');return;}cancel();o.lock();marks=[];status('Коснитесь двух противоположных краёв запястья там, где будет браслет.');};
  return {photoLoaded:function(){cancel();anchor=null;marks=null;o.defaults();detect();},detect:detect,cancel:cancel,
+  live:function(g){if(!g)return false;marks=null;place(g);return true;},
   hide:function(){cancel();marks=null;},
   changed:function(){if(anchor)place(anchor);},
   point:function(p){if(!marks){cancel();return false;}marks.push(p);if(marks.length===1){status('Теперь коснитесь противоположного края запястья.');return true;}
