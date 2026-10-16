@@ -99,22 +99,24 @@ function draw(ctx,img,opt){
   function proj(y){ // returns {y, cos} in image px relative to case centre
     var s=y<top?top-y:y>bot?y-bot:0,sign=y<top?-1:1;
     if(s===0)return {y:y-mid,c:1};
-    var t=Math.min(lim,s*bandLength/R);
-    return {y:(sign<0?top:bot)-mid+sign*R*Math.sin(t),c:Math.cos(t)};
+    var raw=s*bandLength/R,t=Math.min(lim,raw);
+    // Continue projecting far links smoothly rather than stacking them at the bend.
+    var overflow=Math.max(0,raw-lim);
+    return {y:(sign<0?top:bot)-mid+sign*(R*Math.sin(t)+R*.12*overflow),c:Math.cos(t)};
   }
   var pT=proj(0),pB=proj(P.h),outH=pB.y-pT.y;
   if(!work)work=canvas(1,1);
-  var k=Math.min(1,Math.max(.35,cw*sc*1.8/P.w)); // render at screen resolution, never above source
+  var k=Math.min(1,Math.max(.55,cw*sc*2.35/P.w)); // render crisply on high-DPI displays, never above source
   var W=Math.ceil(P.w*k*Math.max(1,bandWidth)),H=Math.ceil(outH*k)+2;
   if(work.width!==W||work.height!==H){work.width=W;work.height=H;}
   var wx=work.getContext('2d');wx.setTransform(1,0,0,1,0,0);wx.globalCompositeOperation='source-over';wx.globalAlpha=1;wx.clearRect(0,0,W,H);wx.imageSmoothingQuality='high';
-  var step=Math.max(1,Math.min(2,Math.ceil(1/k))),y,a,b,yy0,yy1,taper;
+  var step=1,y,a,b,yy0,yy1,taper; // keep individual bracelet links crisp
   for(y=0;y<P.h;y+=step){
     var h2=Math.min(step,P.h-y);a=proj(y);b=proj(y+h2);
     yy0=(a.y-pT.y)*k;yy1=(b.y-pT.y)*k;if(yy1-yy0<.05)continue;
     taper=1-(1-(a.c+b.c)/2)*(enhanced?.52:.42); // projected bracelet narrows around the wrist
     var blend=Math.min(1,Math.max(0,y<top?(top-y)/(P.h*.045):y>bot?(y-bot)/(P.h*.045):0));
-    var dw=P.w*k*taper*(1+(bandWidth-1)*blend);
+    var dw;
     // The first links keep their original width; perspective increases gradually outward.
     var dist=y<top?(top-y):y>bot?(y-bot):0;
     var falloff=Math.min(1,dist/(P.h*.17));
@@ -156,8 +158,8 @@ function draw(ctx,img,opt){
   // Cut ends of the bracelet fade out where it disappears around the wrist.
   if(top>P.h*.04||bot<P.h*.96){
     wx.globalCompositeOperation='destination-out';
-    var fe=wx.createLinearGradient(0,0,0,H),f1=Math.min(.05,(top-mid-pT.y)*k/H*.2),f2=1-Math.min(.05,(pB.y-(bot-mid))*k/H*.2);
-    fe.addColorStop(0,'rgba(0,0,0,.98)');fe.addColorStop(f1,'rgba(0,0,0,0)');fe.addColorStop(f2,'rgba(0,0,0,0)');fe.addColorStop(1,'rgba(0,0,0,.98)');
+    var fe=wx.createLinearGradient(0,0,0,H),fadePx=Math.max(3,Math.min(18,H*.028)),f1=Math.min(.09,fadePx/H),f2=1-Math.min(.09,fadePx/H);
+    fe.addColorStop(0,'rgba(0,0,0,1)');fe.addColorStop(f1,'rgba(0,0,0,0)');fe.addColorStop(f2,'rgba(0,0,0,0)');fe.addColorStop(1,'rgba(0,0,0,1)');
     wx.fillStyle=fe;wx.fillRect(0,0,W,H);
   }
   // Thin light-catching rim: subtract an eroded alpha mask from the silhouette.
