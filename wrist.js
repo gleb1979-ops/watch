@@ -15,7 +15,7 @@ function geometry(lm,w,h){
   if(!Number.isFinite(len)||len<20||palm<15||palm>len*2.5)return null;
   var width=palm*.82, x=a.x-dx*.25,y=a.y-dy*.25;
   if(x<width*.2||x>w-width*.2||y<width*.2||y>h-width*.2)return null;
-  return {x:x,y:y,width:width,angle:Math.atan2(dy,dx)*180/Math.PI};
+  return {x:x,y:y,width:width,angle:Math.atan2(dy,dx)*180/Math.PI+90};
 }
 function unrotate(g,angle,w,h,scale){
   var x=g.x,y=g.y;
