@@ -13,7 +13,9 @@ async function detector(){
 function geometry(lm,w,h){
   var p=lm.map(function(p){return {x:p.x*w,y:p.y*h};}),a=p[0],b=p[9],dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy),palm=Math.hypot(p[5].x-p[17].x,p[5].y-p[17].y);
   if(!Number.isFinite(len)||len<20||palm<15||palm>len*2.5)return null;
-  var width=palm*.82, x=a.x-dx*.25,y=a.y-dy*.25;
+  // Landmarker point 0 is the wrist boundary: place the case farther toward the forearm.
+  // Use the palm-to-wrist axis so this works for either hand and any camera rotation.
+  var width=palm*.82, x=a.x-dx*.43,y=a.y-dy*.43;
   if(x<width*.2||x>w-width*.2||y<width*.2||y>h-width*.2)return null;
   return {x:x,y:y,width:width,angle:Math.atan2(dy,dx)*180/Math.PI+90};
 }
