@@ -53,7 +53,7 @@ details p{margin:8px 0}
     <input id="link" type="url" inputmode="url" placeholder="Ссылка на фильм" autocomplete="off" spellcheck="false" required>
     <button class="primary" id="go" type="submit">Смотреть</button>
   </form>
-  <div class="chips">
+  <div class="chips" id="catalog">
     <button class="chip" id="demo" type="button">▶ Пример: «Кто крайний?» (2020, 8 мин)</button>
   </div>
 
@@ -76,7 +76,7 @@ details p{margin:8px 0}
 
   <div class="note" id="howto">
     <b>Какие ссылки работают сейчас:</b> Wikimedia Commons, Internet Archive (archive.org) и прямые ссылки на видеофайлы (.mp4, .webm). YouTube, VK Видео и Rutube — в следующей версии.<br>
-    Перевод — Google Переводчик. Лучше всего работает в Chrome на компьютере; на телефоне субтитры готовятся медленнее.
+    Перевод — Google Переводчик. Фильмы из списка выше уже подготовлены и работают на телефоне. Новые ссылки обрабатываются автоматически на компьютере в Chrome.
   </div>
 
   <details>
@@ -325,15 +325,35 @@ details p{margin:8px 0}
     if (!Array.isArray(j) || !Array.isArray(j[0])) throw new Error('Неожиданный ответ переводчика');
     return j[0].map(function (x) { return (x && x[0]) || ''; }).join('');
   }
+  // ordered list of video sources to try: preferred format first, sizes up to 854px wide first
   function pickCommons(info, preferMp4) {
     var list = (info.derivatives || []).filter(function (d) { return d && d.src; });
     var isMp4 = function (d) { return /mp4/.test((d.type || '') + (d.transcodekey || '') + d.src); };
-    var byW = function (a, b) { return (a.width || 0) - (b.width || 0); };
-    var playable = list.filter(function (d) { return !preferMp4 || isMp4(d); }).sort(byW);
-    var good = playable.filter(function (d) { return (d.width || 0) <= 854; });
-    var play = (good.length ? good[good.length - 1] : playable[0]) || null;
-    var audio = playable[0] || null;
-    return { play: play ? play.src : info.url, audio: audio ? audio.src : info.url };
+    var rank = function (d) { var w = d.width || 0; return w <= 854 ? 10000 - (854 - w) : 5000 - w; };
+    var sortBest = function (arr) { return arr.slice().sort(function (a, b) { return rank(b) - rank(a); }); };
+    var mp4 = sortBest(list.filter(isMp4)), other = sortBest(list.filter(function (d) { return !isMp4(d); }));
+    var plays = (preferMp4 ? mp4.concat(other) : other.concat(mp4)).map(function (d) { return d.src; });
+    if (info.url && plays.indexOf(info.url) < 0) plays.push(info.url);
+    var small = list.filter(function (d) { return !preferMp4 || isMp4(d); }).sort(function (a, b) { return (a.width || 0) - (b.width || 0); })[0];
+    return { play: plays[0], plays: plays, audio: small ? small.src : info.url };
+  }
+  function filmKey(k) {
+    if (k.kind === 'commons') return 'commons:' + k.file.replace(/_/g, ' ').trim();
+    if (k.kind === 'archive') return 'archive:' + k.id;
+    if (k.kind === 'direct') return 'url:' + k.url;
+    return '';
+  }
+  // split lines into batches whose joined, URL-encoded length stays under `limit`
+  function textBatches(lines, limit) {
+    limit = limit || 6000;
+    var out = [], cur = [], len = 0;
+    lines.forEach(function (l, i) {
+      var n = encodeURIComponent(l + '\n').length;
+      if (cur.length && len + n > limit) { out.push(cur); cur = []; len = 0; }
+      cur.push(i); len += n;
+    });
+    if (cur.length) out.push(cur);
+    return out;
   }
   function pickArchive(meta) {
     var files = (meta.files || []).filter(function (f) { return /\.(mp4|m4v|webm|ogv)$/i.test(f.name || ''); });
@@ -345,9 +365,10 @@ details p{margin:8px 0}
     var url = function (f) { return 'https://archive.org/download/' + encodeURIComponent(meta.metadata.identifier) + '/' + f.name.split('/').map(encodeURIComponent).join('/'); };
     var under = pool.filter(function (f) { return size(f) <= 1.5e9; });
     var play = under.length ? under[under.length - 1] : pool[0];
-    return { play: url(play), audio: url(pool[0]), title: (meta.metadata && [].concat(meta.metadata.title)[0]) || meta.metadata.identifier };
+    var plays = [url(play)]; if (url(pool[0]) !== plays[0]) plays.push(url(pool[0]));
+    return { play: plays[0], plays: plays, audio: url(pool[0]), title: (meta.metadata && [].concat(meta.metadata.title)[0]) || meta.metadata.identifier };
   }
-  g.CinemaCore = { classifyLink: classifyLink, nextWindow: nextWindow, windowAt: windowAt, readyUntil: readyUntil, parseGoogle: parseGoogle, pickCommons: pickCommons, pickArchive: pickArchive };
+  g.CinemaCore = { classifyLink: classifyLink, nextWindow: nextWindow, windowAt: windowAt, readyUntil: readyUntil, parseGoogle: parseGoogle, pickCommons: pickCommons, pickArchive: pickArchive, filmKey: filmKey, textBatches: textBatches };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 
@@ -493,6 +514,54 @@ async function translateLines(lines) {
   return Promise.all(lines.map((l) => gtx(l).catch(() => mymemory(l)).catch(() => '')));
 }
 
+/* ---------- catalog of prepared films (Russian text ready, phone-friendly) ---------- */
+let catalog = null;
+async function getCatalog() {
+  if (catalog) return catalog;
+  try { const r = await fetch('subs/catalog.json', { cache: 'no-cache' }); catalog = r.ok ? await r.json() : []; } catch (e) { catalog = []; }
+  return catalog;
+}
+async function playPrepared(me, entry) {
+  const key = 'bydcin2:' + entry.key + ':' + (entry.version || 1);
+  const saved = store.get(key);
+  if (saved && saved.cues && saved.complete) {
+    saved.cues.forEach((c) => { me.cues.push(c); addCue(c); });
+    $('#dl').disabled = false; setBar(100);
+    setStatus('Субтитры на иврите готовы — нажми Play.', 'ok');
+    return;
+  }
+  setStatus('Загружаю текст фильма…');
+  const r = await fetch(entry.ru, { cache: 'no-cache' });
+  if (!r.ok) throw new Error('Не удалось загрузить текст фильма (' + r.status + ')');
+  const ru = C.parseSubs(await r.text());
+  const batches = K.textBatches(ru.map((c) => c.text), 6000);
+  let done = 0;
+  for (const b of batches) {
+    if (me.cancel) return;
+    const he = await translateLines(b.map((i) => ru[i].text));
+    b.forEach((i, n) => { const cue = { start: ru[i].start, end: ru[i].end, ru: ru[i].text, he: he[n] || '' }; me.cues.push(cue); addCue(cue); });
+    done += b.length;
+    $('#dl').disabled = false;
+    setBar(done / ru.length * 100);
+    setStatus(`Перевожу на иврит · ${Math.round(done / ru.length * 100)}% — можно уже смотреть`);
+  }
+  const ok = me.cues.filter((c) => c.he).length;
+  store.set(key, { cues: me.cues, complete: ok === me.cues.length });
+  if (!ok) throw new Error('Переводчик не ответил. Проверь интернет и открой фильм ещё раз.');
+  setStatus('Субтитры на иврите готовы — приятного просмотра!', 'ok');
+}
+async function renderCatalog() {
+  const list = await getCatalog();
+  const box = $('#catalog');
+  list.forEach((e) => {
+    if (e.link === DEMO) return;
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = '▶ ' + e.title;
+    b.addEventListener('click', () => { $('#link').value = decodeURIComponent(e.link); open(e.link); });
+    box.appendChild(b);
+  });
+}
+
 /* ---------- link → playable + audio source ---------- */
 async function resolve(link) {
   const k = K.classifyLink(link);
@@ -500,7 +569,7 @@ async function resolve(link) {
   if (k.kind === 'youtube' || k.kind === 'vk' || k.kind === 'rutube')
     throw new Error('YouTube, VK Видео и Rutube появятся в следующей версии. Сейчас работают Wikimedia Commons, Internet Archive и прямые ссылки на видеофайлы.');
   if (k.kind === 'unknown') throw new Error(`Сайт ${k.host} пока не поддерживается. Сейчас работают Wikimedia Commons, Internet Archive и прямые ссылки на видеофайлы.`);
-  if (k.kind === 'direct') return { play: k.url, audio: k.url, title: decodeURIComponent(k.url.split('/').pop().split('?')[0]).replace(/\.[^.]+$/, '') };
+  if (k.kind === 'direct') return { key: K.filmKey(k), play: k.url, plays: [k.url], audio: k.url, title: decodeURIComponent(k.url.split('/').pop().split('?')[0]).replace(/\.[^.]+$/, '') };
   if (k.kind === 'commons') {
     const api = 'https://commons.wikimedia.org/w/api.php?action=query&prop=videoinfo&viprop=url%7Cderivatives&titles=' + encodeURIComponent('File:' + k.file) + '&format=json&origin=*';
     const r = await fetch(api); if (!r.ok) throw new Error('Wikimedia не ответил (' + r.status + ')');
@@ -508,7 +577,7 @@ async function resolve(link) {
     const info = page?.videoinfo?.[0];
     if (!info) throw new Error('На Wikimedia по этой ссылке нет видео.');
     const p = K.pickCommons(info, SAFARI);
-    return { ...p, title: k.file.replace(/\.[^.]+$/, '').replace(/^Короткометражный фильм\s*/, '').replace(/\s*\..*$/, '').replace(/[«»"]/g, '').replace(/-$/, '?') || k.file };
+    return { ...p, key: K.filmKey(k), title: k.file.replace(/\.[^.]+$/, '').replace(/^Короткометражный фильм\s*/, '').replace(/\s*\..*$/, '').replace(/[«»"]/g, '').replace(/-$/, '?') || k.file };
   }
   if (k.kind === 'archive') {
     const r = await fetch('https://archive.org/metadata/' + encodeURIComponent(k.id));
@@ -517,7 +586,7 @@ async function resolve(link) {
     if (!meta.metadata) throw new Error('На Internet Archive нет такой записи.');
     const p = K.pickArchive(meta);
     if (!p) throw new Error('В этой записи Internet Archive нет видеофайла.');
-    return p;
+    return { ...p, key: K.filmKey(k) };
   }
 }
 
@@ -579,14 +648,23 @@ async function open(link) {
   setBar(0); setStatus('Открываю ссылку…');
   let src;
   try { src = await resolve(link); } catch (e) { setStatus(e.message, 'err'); video.removeAttribute('src'); video.load(); return; }
-  const me = { link, src, cancel: false, cues: [], done: new Set(), wins: null, total: 0, autopaused: false };
+  const me = { link, src, cancel: false, cues: [], done: new Set(), wins: null, total: 0, autopaused: false, plays: src.plays || [src.play], playIdx: 0 };
   job = me;
   $('#title').textContent = src.title || '';
   document.title = (src.title ? src.title + ' — ' : '') + 'B.Y.D Cinema';
-  video.src = src.play; video.load();
+  video.src = me.plays[0]; video.load();
   me.tracks = makeTracks();
   history.replaceState(null, '', '?v=' + encodeURIComponent(link));
 
+  const entry = (await getCatalog()).find((e) => e.key === src.key);
+  if (entry) {
+    try { await playPrepared(me, entry); } catch (e) { if (!me.cancel) setStatus(e.message || String(e), 'err'); }
+    return;
+  }
+  if (MOBILE) {
+    setStatus('Видео открыто, но этот фильм ещё не подготовлен для субтитров на телефоне. Выбери фильм из списка выше или открой эту ссылку на компьютере в Chrome — там субтитры сделаются автоматически.', 'err');
+    return;
+  }
   const key = 'bydcin:' + src.play;
   const saved = store.get(key);
   if (saved && saved.cues) {
@@ -639,7 +717,17 @@ video.addEventListener('timeupdate', () => {
   }
 });
 video.addEventListener('play', () => { if (job) job.autopaused = false; });
-video.addEventListener('error', () => { if (video.getAttribute('src')) setStatus('Браузер не смог воспроизвести это видео. Попробуй другую ссылку или Chrome.', 'err'); });
+video.addEventListener('error', () => {
+  if (!video.getAttribute('src')) return;
+  if (job && job.playIdx < job.plays.length - 1) {
+    job.playIdx++;
+    const t = video.currentTime || 0;
+    video.src = job.plays[job.playIdx]; video.load();
+    if (t) video.addEventListener('loadedmetadata', () => { video.currentTime = t; }, { once: true });
+    return;
+  }
+  setStatus('Этот браузер не смог воспроизвести видео ни в одном формате. Попробуй Chrome или другую ссылку.', 'err');
+});
 
 $('#form').addEventListener('submit', (e) => { e.preventDefault(); open($('#link').value); });
 $('#demo').addEventListener('click', () => { $('#link').value = decodeURIComponent(DEMO); open(DEMO); });
@@ -652,6 +740,7 @@ $('#dl').addEventListener('click', () => {
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
 });
 
+renderCatalog();
 const q = new URLSearchParams(location.search).get('v');
 if (q) { $('#link').value = q; open(q); }
 </script>
