@@ -1,0 +1,45 @@
+name: Make Russian subtitles
+on:
+  push:
+    branches: [main]
+    paths: ['subs/requests/**']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: write
+concurrency:
+  group: subtitles
+  cancel-in-progress: false
+jobs:
+  subtitles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install ffmpeg and speech recognition
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          pip install -q faster-whisper==1.2.1
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-models-v1
+      - name: Recognize Russian speech
+        run: python tools/make_subs.py
+      - name: Publish subtitles
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "B.Y.D subtitles bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add subs
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Subtitles: add Russian text from speech recognition"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          # pushes made by this bot do not trigger other workflows, so redeploy the site explicitly
+          gh workflow run pages.yml --ref main
