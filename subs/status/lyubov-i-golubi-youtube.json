@@ -1,0 +1,5 @@
+{
+ "state": "error",
+ "error": "Command '['yt-dlp', '--no-warnings', '--no-playlist', '-J', 'https://www.youtube.com/watch?v=qYPVTBIgF7Q']' returned non-zero exit status 1.",
+ "finished": 1792341329
+}
