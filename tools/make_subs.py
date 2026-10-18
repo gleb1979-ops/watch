@@ -30,7 +30,7 @@ LICENSE_INFO = {}
 JUNK = [re.compile(p, re.I) for p in [
     r'субтитр\S*\s+(сделал|делал|создал|создавал|подготовил|редактировал)', r'dimatorzok',
     r'редактор субтитров', r'корректор\s+[а-яё]', r'^продолжение следует', r'^спасибо за просмотр',
-    r'подписывайтесь на', r'amara\.org', r'^[\s.…,!?\-–—♪*]*$']]
+    r'подписывайтесь на', r'amara\.org', r'^конец\.?$', r'^девушки отдыхают', r'^[\s.…,!?\-–—♪*]*$']]
 
 
 def get(url, timeout=120):
@@ -147,7 +147,7 @@ def process(slug, req):
         from faster_whisper import WhisperModel
         model = WhisperModel(MODEL, device='cpu', compute_type='int8')
         # gentle voice detection: old films mix speech with music and noise
-        use_vad = req.get('vad', True)
+        use_vad = req.get('vad', False)  # voice detection drops speech under music; off unless a film asks for it
         segments, info = model.transcribe(str(wav), language='ru', beam_size=5, vad_filter=use_vad,
                                           vad_parameters={'threshold': 0.2, 'min_speech_duration_ms': 120,
                                                           'min_silence_duration_ms': 600, 'speech_pad_ms': 500},
