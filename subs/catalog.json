@@ -28,5 +28,25 @@
   "year": 1984,
   "minutes": 105,
   "uploader": "Киноконцерн \"Мосфильм\""
+ },
+ {
+  "key": "rutube:c3f9a356e9e04ac607b4d7d295648eab",
+  "title": "Москва слезам не верит, 1 серия (1979)",
+  "link": "https://rutube.ru/video/c3f9a356e9e04ac607b4d7d295648eab/",
+  "ru": "subs/moskva-slezam-1.ru.vtt",
+  "version": 1,
+  "year": 1979,
+  "minutes": 67,
+  "uploader": "Киноконцерн \"Мосфильм\""
+ },
+ {
+  "key": "rutube:993a315cc6dbb860b88d1b1171e85d3b",
+  "title": "Москва слезам не верит, 2 серия (1979)",
+  "link": "https://rutube.ru/video/993a315cc6dbb860b88d1b1171e85d3b/",
+  "ru": "subs/moskva-slezam-2.ru.vtt",
+  "version": 1,
+  "year": 1979,
+  "minutes": 82,
+  "uploader": "Киноконцерн \"Мосфильм\""
  }
 ]

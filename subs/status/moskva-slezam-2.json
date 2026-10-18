@@ -1,0 +1,13 @@
+{
+ "state": "done",
+ "cues": 1066,
+ "model": "large-v3-turbo",
+ "source_license": {
+  "uploader": "Киноконцерн \"Мосфильм\"",
+  "channel_url": "",
+  "license": "",
+  "minutes": 82,
+  "text_source": "speech recognition"
+ },
+ "finished": 1792360091
+}
