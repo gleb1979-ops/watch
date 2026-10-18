@@ -152,7 +152,10 @@ def platform_key(link):
 
 
 def ytdlp(*args):
-    return subprocess.run(['yt-dlp', '--no-warnings', '--no-playlist', *args], capture_output=True, text=True, check=True).stdout
+    r = subprocess.run(['yt-dlp', '--no-warnings', '--no-playlist', *args], capture_output=True, text=True)
+    if r.returncode:
+        raise RuntimeError('yt-dlp: ' + (r.stderr.strip().splitlines() or ['failed'])[-1][:400])
+    return r.stdout
 
 
 def page_url(kind, vid):
