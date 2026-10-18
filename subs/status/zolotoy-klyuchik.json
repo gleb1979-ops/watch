@@ -1,6 +1,6 @@
 {
  "state": "done",
- "cues": 212,
+ "cues": 767,
  "model": "large-v3-turbo",
  "source_license": {
   "license": "Public domain",
@@ -8,5 +8,5 @@
   "author": "см. в титрах",
   "minutes": 79
  },
- "finished": 1792327484
+ "finished": 1792329838
 }
