@@ -25,6 +25,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SUBS = ROOT / 'subs'
 UA = 'BYD-Cinema-Subtitles/1.0 (https://gleb1979-ops.github.io/watch/cinema.html; GitHub: gleb1979-ops/watch)'
 MODEL = os.environ.get('WHISPER_MODEL', 'large-v3-turbo')
+LICENSE_INFO = {}
 
 JUNK = [re.compile(p, re.I) for p in [
     r'субтитр\S*\s+(сделал|делал|создал|создавал|подготовил|редактировал)', r'dimatorzok',
@@ -45,11 +46,15 @@ def film_key_and_source(link):
         title = urllib.parse.parse_qs(u.query).get('title', [None])[0] or path.split('/wiki/', 1)[-1]
         name = re.sub(r'^(File|Файл):', '', title, flags=re.I).replace('_', ' ').strip()
         api = 'https://commons.wikimedia.org/w/api.php?' + urllib.parse.urlencode({
-            'action': 'query', 'prop': 'videoinfo', 'viprop': 'url|derivatives', 'titles': 'File:' + name, 'format': 'json'})
+            'action': 'query', 'prop': 'videoinfo', 'viprop': 'url|derivatives|size|extmetadata', 'titles': 'File:' + name, 'format': 'json'})
         data = json.load(get(api))
         page = next(iter(data['query']['pages'].values()))
         info = page['videoinfo'][0]
         ders = sorted([d for d in info.get('derivatives', []) if d.get('src')], key=lambda d: d.get('width') or 0)
+        meta = info.get('extmetadata') or {}
+        clean = lambda k: re.sub(r'<[^>]+>', '', (meta.get(k) or {}).get('value', '')).strip()
+        LICENSE_INFO.update({'license': clean('LicenseShortName'), 'terms': clean('UsageTerms'),
+                             'author': clean('Artist')[:200], 'minutes': round((info.get('duration') or 0) / 60)})
         return 'commons:' + name, (ders[0]['src'] if ders else info['url']), re.sub(r'\.[^.]+$', '', name)
     if host == 'archive.org':
         m = re.match(r'^/(details|download|embed)/([^/?#]+)', u.path)
@@ -125,6 +130,7 @@ def write_json(path, data):
 
 def process(slug, req):
     status = SUBS / 'status' / f'{slug}.json'
+    LICENSE_INFO.clear()
     write_json(status, {'state': 'working', 'started': int(time.time())})
     key, src, title_guess = film_key_and_source(req['link'])
     print(f'[{slug}] key={key}\n[{slug}] downloading {src}', flush=True)
@@ -155,11 +161,11 @@ def process(slug, req):
     entry = {'key': key, 'title': req.get('title') or title_guess, 'link': req['link'],
              'ru': f'subs/{slug}.ru.vtt', 'version': (old or {}).get('version', 0) + 1}
     for extra in ('year', 'minutes', 'license'):
-        if req.get(extra):
-            entry[extra] = req[extra]
+        if req.get(extra) or LICENSE_INFO.get(extra):
+            entry[extra] = req.get(extra) or LICENSE_INFO.get(extra)
     catalog = [e for e in catalog if e['key'] != key] + [entry]
     write_json(cat_path, catalog)
-    write_json(status, {'state': 'done', 'cues': len(cues), 'model': MODEL, 'finished': int(time.time())})
+    write_json(status, {'state': 'done', 'cues': len(cues), 'model': MODEL, 'source_license': LICENSE_INFO, 'finished': int(time.time())})
     print(f'[{slug}] done: {len(cues)} cues', flush=True)
 
 

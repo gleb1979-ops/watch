@@ -523,32 +523,42 @@ async function getCatalog() {
 }
 async function playPrepared(me, entry) {
   const key = 'bydcin2:' + entry.key + ':' + (entry.version || 1);
-  const saved = store.get(key);
-  if (saved && saved.cues && saved.complete) {
-    saved.cues.forEach((c) => { me.cues.push(c); addCue(c); });
-    $('#dl').disabled = false; setBar(100);
-    setStatus('Субтитры на иврите готовы — нажми Play.', 'ok');
-    return;
-  }
+  const saved = store.get(key) || {};
   setStatus('Загружаю текст фильма…');
   const r = await fetch(entry.ru, { cache: 'no-cache' });
   if (!r.ok) throw new Error('Не удалось загрузить текст фильма (' + r.status + ')');
   const ru = C.parseSubs(await r.text());
-  const batches = K.textBatches(ru.map((c) => c.text), 6000);
-  let done = 0;
+  const he = Array.isArray(saved.he) && saved.he.length === ru.length ? saved.he : new Array(ru.length).fill('');
+  const shown = new Set();
+  const show = (i) => { if (shown.has(i) || !he[i]) return; shown.add(i); const cue = { start: ru[i].start, end: ru[i].end, ru: ru[i].text, he: he[i] }; me.cues.push(cue); addCue(cue); };
+  ru.forEach((_, i) => show(i));
+  const todo = ru.map((_, i) => i).filter((i) => !he[i]);
+  if (!todo.length) { $('#dl').disabled = false; setBar(100); setStatus('Субтитры на иврите готовы — нажми Play.', 'ok'); return; }
+  // translate the part near the playhead first, then the rest
+  const now = video.currentTime || 0;
+  todo.sort((a, b) => (ru[a].end < now) - (ru[b].end < now) || a - b);
+  const batches = K.textBatches(todo.map((i) => ru[i].text), 6000).map((b) => b.map((n) => todo[n]));
+  let done = ru.length - todo.length;
   for (const b of batches) {
     if (me.cancel) return;
-    const he = await translateLines(b.map((i) => ru[i].text));
-    b.forEach((i, n) => { const cue = { start: ru[i].start, end: ru[i].end, ru: ru[i].text, he: he[n] || '' }; me.cues.push(cue); addCue(cue); });
+    let out = [];
+    for (let attempt = 0; attempt < 4; attempt++) {
+      out = await translateLines(b.map((i) => ru[i].text));
+      if (out.some((x) => x)) break;
+      setStatus('Переводчик занят, пробую ещё раз…');
+      await new Promise((res) => setTimeout(res, 2000 * (attempt + 1)));
+    }
+    b.forEach((i, n) => { he[i] = out[n] || ''; show(i); });
     done += b.length;
-    $('#dl').disabled = false;
+    store.set(key, { he });
+    $('#dl').disabled = !me.cues.length;
     setBar(done / ru.length * 100);
     setStatus(`Перевожу на иврит · ${Math.round(done / ru.length * 100)}% — можно уже смотреть`);
+    await new Promise((res) => setTimeout(res, 250));
   }
-  const ok = me.cues.filter((c) => c.he).length;
-  store.set(key, { cues: me.cues, complete: ok === me.cues.length });
-  if (!ok) throw new Error('Переводчик не ответил. Проверь интернет и открой фильм ещё раз.');
-  setStatus('Субтитры на иврите готовы — приятного просмотра!', 'ok');
+  const missing = he.filter((x) => !x).length;
+  if (missing === ru.length) throw new Error('Переводчик не ответил. Проверь интернет и открой фильм ещё раз.');
+  setStatus(missing ? `Готово. ${missing} реплик не перевелись — открой фильм ещё раз, чтобы дозаполнить.` : 'Субтитры на иврите готовы — приятного просмотра!', missing ? '' : 'ok');
 }
 async function renderCatalog() {
   const list = await getCatalog();
