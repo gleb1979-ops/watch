@@ -147,7 +147,8 @@ def process(slug, req):
         from faster_whisper import WhisperModel
         model = WhisperModel(MODEL, device='cpu', compute_type='int8')
         # gentle voice detection: old films mix speech with music and noise
-        segments, info = model.transcribe(str(wav), language='ru', beam_size=5, vad_filter=True,
+        use_vad = req.get('vad', True)
+        segments, info = model.transcribe(str(wav), language='ru', beam_size=5, vad_filter=use_vad,
                                           vad_parameters={'threshold': 0.2, 'min_speech_duration_ms': 120,
                                                           'min_silence_duration_ms': 600, 'speech_pad_ms': 500},
                                           word_timestamps=True, condition_on_previous_text=False,
