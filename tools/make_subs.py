@@ -270,8 +270,13 @@ def main():
         slug = p.stem
         if (SUBS / f'{slug}.ru.vtt').exists():
             continue
+        req = json.loads(p.read_text(encoding='utf-8'))
+        st = SUBS / 'status' / f'{slug}.json'
+        if st.exists() and json.loads(st.read_text(encoding='utf-8')).get('state') == 'error' and not req.get('retry'):
+            print(f'[{slug}] skipped: failed before (add "retry": true to the request to try again)', flush=True)
+            continue
         try:
-            process(slug, json.loads(p.read_text(encoding='utf-8')))
+            process(slug, req)
         except Exception as e:  # keep going with other films, record the error
             failed += 1
             print(f'[{slug}] FAILED: {e}', file=sys.stderr, flush=True)
