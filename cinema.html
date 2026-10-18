@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>B.Y.D Cinema</title>
+<meta name="description" content="Вставь ссылку на русский фильм — смотри с субтитрами на иврите.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0d14;--surface:#151925;--surface-2:#1e2333;--text:#f2f0ea;--muted:#9aa1b4;--line:#2a3044;--accent:#f0a33a;--accent-ink:#1b1206;--ok:#6fd39a;--err:#ff8f86;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:16px/1.5 Rubik,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:900px;margin:0 auto;padding:18px 16px 56px}
+.brand{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+h1{font-size:clamp(26px,6.5vw,40px);line-height:1.12;margin:6px 0 6px}
+.lead{color:var(--muted);margin:0 0 16px}
+.bar{display:flex;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:6px}
+.bar input{flex:1;min-width:0;font:inherit;color:var(--text);background:transparent;border:0;padding:10px 10px;outline:none}
+button{font:inherit;font-weight:500;border:1px solid var(--line);background:var(--surface-2);color:var(--text);border-radius:10px;padding:10px 14px;cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:700;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+.chip{font-size:14px;padding:6px 12px;border-radius:99px}
+.player{margin-top:16px;display:none}
+.player h2{font-size:19px;margin:0 0 8px}
+video{width:100%;aspect-ratio:16/9;background:#000;border-radius:14px;display:block}
+video::cue{font-family:Rubik,Arial,sans-serif;font-size:1.1em;line-height:1.35;background:rgba(0,0,0,.75);color:#fff}
+.progress{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:12px}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
+#status{margin-top:8px;font-size:14px;color:var(--muted);min-height:1.5em}
+#status.err{color:var(--err)}
+#status.ok{color:var(--ok)}
+.tools{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:12px;font-size:14px;color:var(--muted)}
+.tools label{display:flex;gap:6px;align-items:center;cursor:pointer}
+select{font:inherit;font-size:14px;color:var(--text);background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.note{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:16px;font-size:14px;color:var(--muted)}
+.note b{color:var(--text)}
+details{margin-top:16px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--muted)}
+details summary{cursor:pointer;color:var(--text);font-weight:500}
+details p{margin:8px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">B.Y.D Cinema</div>
+  <h1>Русское кино с субтитрами на иврите</h1>
+  <p class="lead">Вставь ссылку на фильм — он откроется здесь, а субтитры на иврите будут появляться по ходу просмотра.</p>
+
+  <form class="bar" id="form">
+    <input id="link" type="url" inputmode="url" placeholder="Ссылка на фильм" autocomplete="off" spellcheck="false" required>
+    <button class="primary" id="go" type="submit">Смотреть</button>
+  </form>
+  <div class="chips">
+    <button class="chip" id="demo" type="button">▶ Пример: «Кто крайний?» (2020, 8 мин)</button>
+  </div>
+
+  <section class="player" id="player">
+    <h2 id="title"></h2>
+    <video id="video" controls playsinline preload="metadata"></video>
+    <div class="progress"><i id="pbar"></i></div>
+    <div id="status"></div>
+    <div class="tools">
+      <label><input type="checkbox" id="waitSubs" checked> пауза, пока готовятся субтитры</label>
+      <label><input type="checkbox" id="showRu"> показывать и русский</label>
+      <label>точность
+        <select id="asrModel">
+          <option value="Xenova/whisper-base">быстрее</option>
+          <option value="Xenova/whisper-small">точнее</option>
+        </select></label>
+      <button type="button" id="dl" disabled>Скачать субтитры .vtt</button>
+    </div>
+  </section>
+
+  <div class="note" id="howto">
+    <b>Какие ссылки работают сейчас:</b> Wikimedia Commons, Internet Archive (archive.org) и прямые ссылки на видеофайлы (.mp4, .webm). YouTube, VK Видео и Rutube — в следующей версии.<br>
+    Перевод — Google Переводчик. Лучше всего работает в Chrome на компьютере; на телефоне субтитры готовятся медленнее.
+  </div>
+
+  <details>
+    <summary>Правила сайта</summary>
+    <p>B.Y.D Cinema не хранит и не загружает фильмы. Видео воспроизводится напрямую с сайта, ссылку на который вставил пользователь, а наш сервис только добавляет к нему автоматические субтитры.</p>
+    <p>Вставляя ссылку, вы подтверждаете, что фильм размещён по этой ссылке законно, с согласия правообладателя или в свободном доступе по лицензии. Не используйте сервис для пиратского контента.</p>
+    <p>Субтитры создаются машинным переводом и могут содержать неточности.</p>
+    <p>Правообладателям: если вы считаете, что через сервис показывается ваш материал без разрешения, свяжитесь с B.Y.D — мы прекратим поддержку такого источника по запросу.</p>
+  </details>
+</div>
+
+<script id="core">
+(function (g) {
+  'use strict';
+  var JUNK = [
+    /субтитр\S*\s+(сделал|делал|создал|создавал|подготовил|редактировал)/i,
+    /dimatorzok/i, /редактор субтитров/i, /корректор\s+[а-яё]/i,
+    /^продолжение следует/i, /^спасибо за просмотр/i, /подписывайтесь на/i,
+    /amara\.org/i, /^[\s.…,!?\-–—♪*]*$/
+  ];
+  function pad(n, w) { return String(n).padStart(w || 2, '0'); }
+  function fmtTime(t, sep) {
+    var ms = Math.round(Math.max(0, t) * 1000);
+    var h = Math.floor(ms / 3600000); ms -= h * 3600000;
+    var m = Math.floor(ms / 60000); ms -= m * 60000;
+    var s = Math.floor(ms / 1000); ms -= s * 1000;
+    return pad(h) + ':' + pad(m) + ':' + pad(s) + (sep || '.') + pad(ms, 3);
+  }
+  function fmtClock(t) {
+    t = Math.max(0, Math.floor(t || 0));
+    var h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), s = t % 60;
+    return (h ? h + ':' + pad(m) : m) + ':' + pad(s);
+  }
+  function parseTime(s) {
+    var m = String(s).trim().match(/^(?:(\d+):)?(\d{1,2}):(\d{1,2})(?:[.,](\d{1,3}))?$/);
+    if (!m) return NaN;
+    return (+(m[1] || 0)) * 3600 + (+m[2]) * 60 + (+m[3]) + (+(m[4] || '0').padEnd(3, '0')) / 1000;
+  }
+  function stripMarks(s) { return s.replace(/[‎‏‪-‮]/g, ''); }
+  function cleanText(t) { return String(t || '').replace(/\s+/g, ' ').replace(/^[\s\-–—]+(?=\S)/, '').trim(); }
+  function isJunk(t) { return JUNK.some(function (r) { return r.test(t); }); }
+
+  function parseSubs(text) {
+    text = String(text).replace(/^﻿/, '').replace(/\r/g, '');
+    var blocks = text.split(/\n[ \t]*\n/), cues = [];
+    blocks.forEach(function (b) {
+      var lines = b.split('\n').filter(function (l) { return l.trim() !== ''; });
+      var i = lines.findIndex(function (l) { return l.indexOf('-->') >= 0; });
+      if (i < 0) return;
+      var parts = lines[i].split('-->');
+      var start = parseTime(parts[0]);
+      var end = parseTime(parts[1].trim().split(/\s+/)[0]);
+      if (isNaN(start) || isNaN(end)) return;
+      var body = lines.slice(i + 1).map(function (l) { return stripMarks(l).replace(/<[^>]+>/g, '').replace(/\{\\[^}]*\}/g, '').trim(); }).join(' ');
+      body = cleanText(body);
+      if (body) cues.push({ start: start, end: end, text: body });
+    });
+    return cues;
+  }
+
+  function rms(arr, a, b) {
+    a = a || 0; b = b == null ? arr.length : b;
+    var s = 0; for (var i = a; i < b; i++) s += arr[i] * arr[i];
+    return Math.sqrt(s / Math.max(1, b - a));
+  }
+
+  // Split long audio into windows <= maxLen seconds, cutting at the quietest moment
+  // inside the last `search` seconds, so words are not cut in half.
+  function findCuts(samples, sr, maxLen, search) {
+    maxLen = maxLen || 28; search = search || 6;
+    var frame = Math.max(1, Math.round(sr * 0.05));
+    var nf = Math.ceil(samples.length / frame), en = new Float32Array(nf);
+    for (var f = 0; f < nf; f++) en[f] = rms(samples, f * frame, Math.min(samples.length, (f + 1) * frame));
+    var total = samples.length, maxS = Math.round(maxLen * sr), searchS = Math.round(search * sr);
+    var out = [], start = 0;
+    while (start < total) {
+      if (total - start <= maxS) { out.push([start, total]); break; }
+      var hi = start + maxS, lo = hi - searchS, best = hi, bestV = Infinity;
+      for (var k = Math.ceil(lo / frame); (k + 1) * frame <= hi && k < nf; k++) {
+        if (en[k] < bestV) { bestV = en[k]; best = k * frame + (frame >> 1); }
+      }
+      best = Math.min(Math.max(best, lo), hi);
+      out.push([start, best]); start = best;
+    }
+    return out;
+  }
+
+  function splitLong(c, maxChars) {
+    maxChars = maxChars || 84;
+    if (c.text.length <= maxChars) return [c];
+    // prefer sentence boundaries, then word boundaries
+    var sentences = c.text.match(/[^.!?…]+[.!?…]+["»”]?\s*|[^.!?…]+$/g) || [c.text];
+    var parts = [], cur = '';
+    sentences.forEach(function (sn) {
+      sn = sn.trim(); if (!sn) return;
+      if (sn.length > maxChars) {
+        if (cur) { parts.push(cur); cur = ''; }
+        balanced(sn, maxChars).forEach(function (b) { parts.push(b); });
+      } else if (cur && (cur + ' ' + sn).length > maxChars) { parts.push(cur); cur = sn; }
+      else cur = cur ? cur + ' ' + sn : sn;
+    });
+    if (cur) parts.push(cur);
+    // short pieces get a little extra weight so they stay readable
+    var weights = parts.map(function (p) { return p.length + 12; });
+    var totalW = weights.reduce(function (a, w) { return a + w; }, 0);
+    var dur = c.end - c.start, t = c.start;
+    return parts.map(function (p, i) { var d = dur * weights[i] / totalW; var o = { start: t, end: t + d, text: p }; t += d; return o; });
+  }
+  // split a long sentence into k pieces of similar length at word boundaries
+  function balanced(text, maxChars) {
+    var words = text.split(' '), k = Math.ceil(text.length / maxChars), target = text.length / k;
+    var out = [], cur = '';
+    words.forEach(function (w) {
+      var next = cur ? cur + ' ' + w : w;
+      if (cur && out.length < k - 1 && (next.length > maxChars || Math.abs(next.length - target) > Math.abs(cur.length - target))) { out.push(cur); cur = w; }
+      else cur = next;
+    });
+    if (cur) out.push(cur);
+    return out;
+  }
+
+  // raw chunks: [{text, start, end}] in seconds → editable cues
+  function buildCues(chunks, duration) {
+    var list = [];
+    chunks.forEach(function (ch) {
+      var text = cleanText(ch.text);
+      if (!text || isJunk(text)) return;
+      var s = +ch.start || 0, e = ch.end == null ? NaN : +ch.end;
+      if (!(e > s)) e = s + Math.max(1.5, text.length / 15);
+      list.push({ start: s, end: e, text: text });
+    });
+    list.sort(function (a, b) { return a.start - b.start; });
+    var dedup = [];
+    list.forEach(function (c) {
+      var p = dedup[dedup.length - 1];
+      if (p && p.text.toLowerCase() === c.text.toLowerCase() && c.start - p.end < 3) { p.end = Math.max(p.end, c.end); return; }
+      dedup.push(c);
+    });
+    var res = [];
+    dedup.forEach(function (c) { res.push.apply(res, splitLong(c)); });
+    for (var i = 0; i < res.length; i++) {
+      var c = res[i], next = res[i + 1];
+      var minEnd = c.start + Math.min(1.5, Math.max(0.8, c.text.length / 17));
+      if (c.end < minEnd) c.end = minEnd;
+      var maxEnd = c.start + Math.max(7, c.text.length / 12);
+      if (c.end > maxEnd) c.end = maxEnd;
+      if (next && c.end > next.start - 0.04) c.end = Math.max(c.start + 0.3, next.start - 0.04);
+      if (duration && c.end > duration) c.end = Math.max(c.start + 0.3, duration);
+    }
+    return res.map(function (c, i) { return { id: i + 1, start: +c.start.toFixed(3), end: +c.end.toFixed(3), ru: c.text, he: '' }; });
+  }
+
+  function fromParsed(parsed) {
+    return parsed.map(function (c, i) { return { id: i + 1, start: c.start, end: c.end, ru: c.text, he: '' }; });
+  }
+
+  function wrapLines(text, max) {
+    max = max || 42; text = cleanText(text);
+    if (text.length <= max) return text;
+    var mid = text.length / 2, best = -1;
+    for (var i = 0; i < text.length; i++) if (text[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+    return best < 0 ? text : text.slice(0, best) + '\n' + text.slice(best + 1);
+  }
+  var RLM = '‏';
+  function cueBody(c, field) {
+    var t = cleanText(c[field]).replace(/-->/g, '→');
+    if (!t) return '';
+    var w = wrapLines(t);
+    return field === 'he' ? w.split('\n').map(function (l) { return RLM + l + RLM; }).join('\n') : w;
+  }
+  function toVTT(cues, field) {
+    var s = 'WEBVTT\n\n', n = 1;
+    cues.forEach(function (c) { var b = cueBody(c, field); if (!b) return; s += (n++) + '\n' + fmtTime(c.start) + ' --> ' + fmtTime(c.end) + '\n' + b + '\n\n'; });
+    return s;
+  }
+  function toSRT(cues, field) {
+    var s = '', n = 1;
+    cues.forEach(function (c) { var b = cueBody(c, field); if (!b) return; s += (n++) + '\n' + fmtTime(c.start, ',') + ' --> ' + fmtTime(c.end, ',') + '\n' + b + '\n\n'; });
+    return s;
+  }
+  function makeBatches(arr, size) { var out = []; for (var i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size)); return out; }
+  // Claude reply → Map(id → hebrew)
+  function parseTranslations(text) {
+    var a = text.indexOf('['), b = text.lastIndexOf(']');
+    if (a < 0 || b < a) throw new Error('В ответе нет списка переводов');
+    var arr = JSON.parse(text.slice(a, b + 1)), map = new Map();
+    arr.forEach(function (x) { if (x && x.id != null && typeof x.he === 'string') map.set(+x.id, cleanText(x.he)); });
+    return map;
+  }
+  g.SubCore = { fmtTime: fmtTime, fmtClock: fmtClock, parseTime: parseTime, parseSubs: parseSubs, rms: rms, findCuts: findCuts,
+    buildCues: buildCues, fromParsed: fromParsed, wrapLines: wrapLines, toVTT: toVTT, toSRT: toSRT, makeBatches: makeBatches,
+    parseTranslations: parseTranslations, isJunk: isJunk, cleanText: cleanText };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+
+<script id="cinema-core">
+(function (g) {
+  'use strict';
+  function classifyLink(str) {
+    var u;
+    try { u = new URL(String(str).trim()); } catch (e) { return { kind: 'bad' }; }
+    if (!/^https?:$/.test(u.protocol)) return { kind: 'bad' };
+    var h = u.hostname.toLowerCase().replace(/^(www|m)\./, '');
+    var path = u.pathname;
+    try { path = decodeURIComponent(path); } catch (e) {}
+    if (h === 'commons.wikimedia.org') {
+      var t = u.searchParams.get('title') || path.replace(/^\/wiki\//, '');
+      if (/^(File|Файл):/i.test(t)) return { kind: 'commons', file: t.replace(/^(File|Файл):/i, '').replace(/_/g, ' ') };
+      return { kind: 'unknown', host: h };
+    }
+    if (h === 'archive.org') {
+      var m = u.pathname.match(/^\/(details|download|embed)\/([^/?#]+)/);
+      if (m) return { kind: 'archive', id: decodeURIComponent(m[2]) };
+      return { kind: 'unknown', host: h };
+    }
+    if (/(^|\.)youtube\.com$/.test(h) || h === 'youtu.be') return { kind: 'youtube' };
+    if (/(^|\.)(vk\.com|vk\.ru|vkvideo\.ru)$/.test(h)) return { kind: 'vk' };
+    if (/(^|\.)rutube\.ru$/.test(h)) return { kind: 'rutube' };
+    if (/\.(mp4|m4v|webm|ogv|mov)$/i.test(u.pathname)) return { kind: 'direct', url: u.href };
+    return { kind: 'unknown', host: h };
+  }
+  // next audio window to process: the one under the playhead first, then forward, then the rest
+  function nextWindow(wins, done, timeSec, sr) {
+    var pos = timeSec * sr, cur = 0;
+    for (var i = 0; i < wins.length; i++) if (pos >= wins[i][0] && pos < wins[i][1]) { cur = i; break; }
+    if (pos >= (wins.length ? wins[wins.length - 1][1] : 0)) cur = 0;
+    for (var k = cur; k < wins.length; k++) if (!done.has(k)) return k;
+    for (k = 0; k < cur; k++) if (!done.has(k)) return k;
+    return -1;
+  }
+  function windowAt(wins, timeSec, sr) {
+    var pos = timeSec * sr;
+    for (var i = 0; i < wins.length; i++) if (pos >= wins[i][0] && pos < wins[i][1]) return i;
+    return -1;
+  }
+  // seconds of ready subtitles ahead of the playhead
+  function readyUntil(wins, done, timeSec, sr) {
+    var i = windowAt(wins, timeSec, sr);
+    if (i < 0) return timeSec;
+    var t = timeSec;
+    while (i < wins.length && done.has(i)) { t = wins[i][1] / sr; i++; }
+    return t;
+  }
+  // Google gtx reply → translated text
+  function parseGoogle(j) {
+    if (!Array.isArray(j) || !Array.isArray(j[0])) throw new Error('Неожиданный ответ переводчика');
+    return j[0].map(function (x) { return (x && x[0]) || ''; }).join('');
+  }
+  function pickCommons(info, preferMp4) {
+    var list = (info.derivatives || []).filter(function (d) { return d && d.src; });
+    var isMp4 = function (d) { return /mp4/.test((d.type || '') + (d.transcodekey || '') + d.src); };
+    var byW = function (a, b) { return (a.width || 0) - (b.width || 0); };
+    var playable = list.filter(function (d) { return !preferMp4 || isMp4(d); }).sort(byW);
+    var good = playable.filter(function (d) { return (d.width || 0) <= 854; });
+    var play = (good.length ? good[good.length - 1] : playable[0]) || null;
+    var audio = playable[0] || null;
+    return { play: play ? play.src : info.url, audio: audio ? audio.src : info.url };
+  }
+  function pickArchive(meta) {
+    var files = (meta.files || []).filter(function (f) { return /\.(mp4|m4v|webm|ogv)$/i.test(f.name || ''); });
+    if (!files.length) return null;
+    var size = function (f) { return +f.size || 0; };
+    var mp4 = files.filter(function (f) { return /\.(mp4|m4v)$/i.test(f.name); });
+    var pool = mp4.length ? mp4 : files;
+    pool.sort(function (a, b) { return size(a) - size(b); });
+    var url = function (f) { return 'https://archive.org/download/' + encodeURIComponent(meta.metadata.identifier) + '/' + f.name.split('/').map(encodeURIComponent).join('/'); };
+    var under = pool.filter(function (f) { return size(f) <= 1.5e9; });
+    var play = under.length ? under[under.length - 1] : pool[0];
+    return { play: url(play), audio: url(pool[0]), title: (meta.metadata && [].concat(meta.metadata.title)[0]) || meta.metadata.identifier };
+  }
+  g.CinemaCore = { classifyLink: classifyLink, nextWindow: nextWindow, windowAt: windowAt, readyUntil: readyUntil, parseGoogle: parseGoogle, pickCommons: pickCommons, pickArchive: pickArchive };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+
+<script id="worker-src" type="text/plain">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.1';
+env.allowLocalModels = false;
+const cache = new Map();
+
+async function hasWebGPU() {
+  try { return !!(self.navigator && navigator.gpu && await navigator.gpu.requestAdapter()); } catch (e) { return false; }
+}
+function onProgress(kind) {
+  return (p) => {
+    if (p.status === 'progress_total') postMessage({ type: 'load', kind, progress: p.progress, loaded: p.loaded, total: p.total });
+  };
+}
+async function getPipe(task, model, kind, tryGPU) {
+  const key = task + '|' + model;
+  if (cache.has(key)) return cache.get(key);
+  const isAsr = task === 'automatic-speech-recognition';
+  const attempts = [];
+  if (tryGPU && await hasWebGPU()) attempts.push({ device: 'webgpu', dtype: isAsr ? { encoder_model: 'fp32', decoder_model_merged: 'q4' } : 'fp32' });
+  attempts.push({ device: 'wasm', dtype: 'q8' });
+  attempts.push({ device: 'wasm', dtype: 'fp32' });
+  let lastErr;
+  for (const a of attempts) {
+    try {
+      const p = await pipeline(task, model, { device: a.device, dtype: a.dtype, progress_callback: onProgress(kind) });
+      cache.set(key, p);
+      postMessage({ type: 'device', kind, device: a.device });
+      return p;
+    } catch (e) {
+      lastErr = e;
+      postMessage({ type: 'info', text: 'Режим ' + a.device + ' не подошёл, пробую другой…' });
+    }
+  }
+  throw lastErr;
+}
+
+self.onmessage = async (ev) => {
+  const m = ev.data;
+  try {
+    if (m.type === 'asr') {
+      const asr = await getPipe('automatic-speech-recognition', m.model, 'asr', true);
+      const out = await asr(m.audio, { language: 'russian', task: 'transcribe', return_timestamps: true });
+      let chunks = (out.chunks || []).map((c) => {
+        const ts = c.timestamp || [];
+        return {
+          text: c.text,
+          start: (ts[0] != null ? ts[0] : 0) + m.offset,
+          end: ts[1] != null ? ts[1] + m.offset : m.offset + m.length
+        };
+      });
+      if (!chunks.length && out.text && out.text.trim()) chunks = [{ text: out.text, start: m.offset, end: m.offset + m.length }];
+      postMessage({ id: m.id, type: 'result', result: chunks });
+    } else if (m.type === 'translate') {
+      const tr = await getPipe('translation', 'Xenova/nllb-200-distilled-600M', 'mt', false);
+      const res = [];
+      for (let i = 0; i < m.texts.length; i++) {
+        if (self.__stop) break;
+        let he = '';
+        if (m.texts[i] && m.texts[i].trim()) {
+          const o = await tr(m.texts[i], { src_lang: 'rus_Cyrl', tgt_lang: 'heb_Hebr', max_new_tokens: 256 });
+          he = (o && o[0] && o[0].translation_text) || '';
+        }
+        res.push(he);
+        postMessage({ type: 'tprogress', index: m.indexes[i], text: he, done: i + 1, total: m.texts.length });
+      }
+      self.__stop = false;
+      postMessage({ id: m.id, type: 'result', result: res });
+    } else if (m.type === 'stop') {
+      self.__stop = true;
+    }
+  } catch (e) {
+    postMessage({ id: m.id, type: 'error', text: String((e && e.message) || e) });
+  }
+};
+</script>
+
+<script type="module">
+const C = window.SubCore, K = window.CinemaCore;
+const $ = (s) => document.querySelector(s);
+const SR = 16000;
+const DEMO = 'https://commons.wikimedia.org/wiki/File:%D0%9A%D0%BE%D1%80%D0%BE%D1%82%D0%BA%D0%BE%D0%BC%D0%B5%D1%82%D1%80%D0%B0%D0%B6%D0%BD%D1%8B%D0%B9_%D1%84%D0%B8%D0%BB%D1%8C%D0%BC_%22%D0%9A%D1%82%D0%BE_%D0%BA%D1%80%D0%B0%D0%B9%D0%BD%D0%B8%D0%B9-%22._%D0%9A%D0%B8%D0%BD%D0%BE%D1%81%D1%82%D1%83%D0%B4%D0%B8%D1%8F_%22%D0%9B%D0%98%D0%A1%D0%90%D0%A0%D0%A2%22._2020%D0%B3..webm';
+const UA = navigator.userAgent;
+const SAFARI = /^((?!chrome|android|crios|fxios|edg).)*safari/i.test(UA);
+const MOBILE = matchMedia('(pointer:coarse)').matches;
+$('#asrModel').value = MOBILE ? 'Xenova/whisper-base' : 'Xenova/whisper-small';
+
+const video = $('#video');
+let job = null; // current film
+
+/* ---------- small helpers ---------- */
+function setStatus(t, kind) { const el = $('#status'); el.textContent = t || ''; el.className = kind || ''; }
+function setBar(p) { $('#pbar').style.width = Math.max(0, Math.min(100, p)) + '%'; }
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+
+/* ---------- worker (speech recognition) ---------- */
+let worker = null, rpcId = 0;
+const pending = new Map();
+function getWorker() {
+  if (worker) return worker;
+  worker = new Worker(URL.createObjectURL(new Blob([$('#worker-src').textContent], { type: 'text/javascript' })), { type: 'module' });
+  worker.onmessage = (e) => {
+    const m = e.data;
+    if (m.type === 'load') { setStatus(`Первый запуск: скачиваю модель распознавания речи · ${Math.round(m.progress || 0)}% (только один раз)`); setBar(m.progress); return; }
+    if (m.type === 'info' || m.type === 'device' || m.type === 'tprogress') return;
+    const p = pending.get(m.id); if (!p) return;
+    pending.delete(m.id);
+    m.type === 'error' ? p.reject(new Error(m.text)) : p.resolve(m.result);
+  };
+  worker.onerror = (e) => { pending.forEach((p) => p.reject(new Error(e.message || 'Ошибка распознавания'))); pending.clear(); worker = null; };
+  return worker;
+}
+function rpc(msg, transfer) {
+  return new Promise((resolve, reject) => { const id = ++rpcId; pending.set(id, { resolve, reject }); getWorker().postMessage({ ...msg, id }, transfer || []); });
+}
+
+/* ---------- translation: Google Translate, MyMemory as backup ---------- */
+async function gtx(text) {
+  const r = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=ru&tl=iw&dt=t&q=' + encodeURIComponent(text));
+  if (!r.ok) throw new Error('Google ' + r.status);
+  return K.parseGoogle(await r.json());
+}
+async function mymemory(text) {
+  const r = await fetch('https://api.mymemory.translated.net/get?langpair=ru%7Che&q=' + encodeURIComponent(text));
+  const j = await r.json();
+  if (String(j.responseStatus) !== '200') throw new Error(j.responseDetails || 'MyMemory');
+  return j.responseData.translatedText || '';
+}
+async function translateLines(lines) {
+  if (!lines.length) return [];
+  const joined = lines.join('\n');
+  if (encodeURIComponent(joined).length < 7000) {
+    try {
+      const out = (await gtx(joined)).split('\n').map((s) => s.trim());
+      if (out.length === lines.length) return out;
+    } catch (e) {}
+  }
+  return Promise.all(lines.map((l) => gtx(l).catch(() => mymemory(l)).catch(() => '')));
+}
+
+/* ---------- link → playable + audio source ---------- */
+async function resolve(link) {
+  const k = K.classifyLink(link);
+  if (k.kind === 'bad') throw new Error('Это не похоже на ссылку. Скопируй адрес страницы с фильмом целиком.');
+  if (k.kind === 'youtube' || k.kind === 'vk' || k.kind === 'rutube')
+    throw new Error('YouTube, VK Видео и Rutube появятся в следующей версии. Сейчас работают Wikimedia Commons, Internet Archive и прямые ссылки на видеофайлы.');
+  if (k.kind === 'unknown') throw new Error(`Сайт ${k.host} пока не поддерживается. Сейчас работают Wikimedia Commons, Internet Archive и прямые ссылки на видеофайлы.`);
+  if (k.kind === 'direct') return { play: k.url, audio: k.url, title: decodeURIComponent(k.url.split('/').pop().split('?')[0]).replace(/\.[^.]+$/, '') };
+  if (k.kind === 'commons') {
+    const api = 'https://commons.wikimedia.org/w/api.php?action=query&prop=videoinfo&viprop=url%7Cderivatives&titles=' + encodeURIComponent('File:' + k.file) + '&format=json&origin=*';
+    const r = await fetch(api); if (!r.ok) throw new Error('Wikimedia не ответил (' + r.status + ')');
+    const page = Object.values((await r.json()).query?.pages || {})[0];
+    const info = page?.videoinfo?.[0];
+    if (!info) throw new Error('На Wikimedia по этой ссылке нет видео.');
+    const p = K.pickCommons(info, SAFARI);
+    return { ...p, title: k.file.replace(/\.[^.]+$/, '').replace(/^Короткометражный фильм\s*/, '').replace(/\s*\..*$/, '').replace(/[«»"]/g, '').replace(/-$/, '?') || k.file };
+  }
+  if (k.kind === 'archive') {
+    const r = await fetch('https://archive.org/metadata/' + encodeURIComponent(k.id));
+    if (!r.ok) throw new Error('Internet Archive не ответил (' + r.status + ')');
+    const meta = await r.json();
+    if (!meta.metadata) throw new Error('На Internet Archive нет такой записи.');
+    const p = K.pickArchive(meta);
+    if (!p) throw new Error('В этой записи Internet Archive нет видеофайла.');
+    return p;
+  }
+}
+
+async function fetchAudio(url) {
+  let r;
+  try { r = await fetch(url); } catch (e) { throw new Error('Сайт с фильмом не разрешает читать звук, поэтому субтитры для этой ссылки сделать нельзя. Само видео можно смотреть.'); }
+  if (!r.ok) throw new Error('Не удалось получить звук фильма (' + r.status + ')');
+  const total = +r.headers.get('content-length') || 0;
+  let buf;
+  if (r.body && total) {
+    const reader = r.body.getReader(), parts = []; let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read(); if (done) break;
+      parts.push(value); got += value.length;
+      setBar(got / total * 100); setStatus(`Получаю звук фильма · ${Math.round(got / total * 100)}%`);
+    }
+    buf = new Uint8Array(got); let o = 0; for (const p of parts) { buf.set(p, o); o += p.length; }
+    buf = buf.buffer;
+  } else buf = await r.arrayBuffer();
+  setStatus('Готовлю звук…');
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ctx; try { ctx = new AC({ sampleRate: SR }); } catch (e) { ctx = new AC(); }
+  try {
+    const ab = await ctx.decodeAudioData(buf);
+    let data = new Float32Array(ab.length);
+    for (let c = 0; c < ab.numberOfChannels; c++) { const d = ab.getChannelData(c); for (let i = 0; i < d.length; i++) data[i] += d[i] / ab.numberOfChannels; }
+    if (ab.sampleRate !== SR) {
+      const ratio = ab.sampleRate / SR, n = Math.floor(data.length / ratio), out = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const x = i * ratio, a = Math.floor(x), f = x - a; out[i] = data[a] * (1 - f) + (data[a + 1] || 0) * f; }
+      data = out;
+    }
+    return data;
+  } catch (e) {
+    throw new Error('Браузер не смог прочитать звук этого фильма. Попробуй Chrome на компьютере.');
+  } finally { try { ctx.close(); } catch (e) {} }
+}
+
+/* ---------- subtitles in the player ---------- */
+function makeTracks() {
+  for (const t of video.textTracks) t.mode = 'disabled';
+  const he = video.addTextTrack('subtitles', 'עברית', 'he');
+  const ru = video.addTextTrack('subtitles', 'Русский', 'ru');
+  he.mode = 'showing'; ru.mode = $('#showRu').checked ? 'showing' : 'hidden';
+  return { he, ru };
+}
+function addCue(c) {
+  const Cue = window.VTTCue || window.TextTrackCue;
+  if (c.he) { const x = new Cue(c.start, c.end, C.wrapLines(c.he).split('\n').map((l) => '‏' + l + '‏').join('\n')); x.line = -2; job.tracks.he.addCue(x); }
+  if (c.ru) { const y = new Cue(c.start, c.end, C.wrapLines(c.ru)); y.line = -4; job.tracks.ru.addCue(y); }
+}
+$('#showRu').addEventListener('change', () => { if (job) job.tracks.ru.mode = $('#showRu').checked ? 'showing' : 'hidden'; });
+
+/* ---------- main flow ---------- */
+async function open(link) {
+  if (job) job.cancel = true;
+  $('#player').style.display = 'block';
+  $('#title').textContent = '';
+  $('#dl').disabled = true;
+  setBar(0); setStatus('Открываю ссылку…');
+  let src;
+  try { src = await resolve(link); } catch (e) { setStatus(e.message, 'err'); video.removeAttribute('src'); video.load(); return; }
+  const me = { link, src, cancel: false, cues: [], done: new Set(), wins: null, total: 0, autopaused: false };
+  job = me;
+  $('#title').textContent = src.title || '';
+  document.title = (src.title ? src.title + ' — ' : '') + 'B.Y.D Cinema';
+  video.src = src.play; video.load();
+  me.tracks = makeTracks();
+  history.replaceState(null, '', '?v=' + encodeURIComponent(link));
+
+  const key = 'bydcin:' + src.play;
+  const saved = store.get(key);
+  if (saved && saved.cues) {
+    saved.cues.forEach((c) => { me.cues.push(c); addCue(c); });
+    (saved.done || []).forEach((i) => me.done.add(i));
+    me.total = saved.total || 0;
+    $('#dl').disabled = !me.cues.length;
+    if (me.total && me.done.size >= me.total) { setBar(100); setStatus('Субтитры на иврите готовы — приятного просмотра!', 'ok'); return; }
+  }
+  try {
+    const data = await fetchAudio(src.audio);
+    if (me.cancel) return;
+    me.wins = C.findCuts(data, SR, 28, 6);
+    me.total = me.wins.length;
+    setBar(me.done.size / me.total * 100);
+    setStatus('Готовлю субтитры — можно нажимать Play.');
+    while (!me.cancel) {
+      const i = K.nextWindow(me.wins, me.done, video.currentTime || 0, SR);
+      if (i < 0) break;
+      const [a, b] = me.wins[i];
+      if (C.rms(data, a, b) >= 0.003) {
+        const slice = data.slice(a, b);
+        const chunks = await rpc({ type: 'asr', model: $('#asrModel').value, audio: slice, offset: a / SR, length: (b - a) / SR }, [slice.buffer]);
+        if (me.cancel) return;
+        const cues = C.buildCues(chunks, (b) / SR);
+        const he = await translateLines(cues.map((c) => c.ru));
+        if (me.cancel) return;
+        cues.forEach((c, n) => { const cue = { start: c.start, end: c.end, ru: c.ru, he: he[n] || '' }; me.cues.push(cue); addCue(cue); });
+      }
+      me.done.add(i);
+      store.set(key, { cues: me.cues, done: [...me.done], total: me.total });
+      $('#dl').disabled = !me.cues.length;
+      setBar(me.done.size / me.total * 100);
+      const ahead = K.readyUntil(me.wins, me.done, video.currentTime || 0, SR);
+      setStatus(me.done.size >= me.total ? '' : `Субтитры готовы до ${C.fmtClock(ahead)} · всего ${Math.round(me.done.size / me.total * 100)}%`);
+      if (me.autopaused && me.done.has(K.windowAt(me.wins, video.currentTime, SR))) { me.autopaused = false; video.play().catch(() => {}); }
+    }
+    if (!me.cancel) setStatus('Субтитры на иврите готовы — приятного просмотра!', 'ok');
+  } catch (e) {
+    if (!me.cancel) setStatus(e.message || String(e), 'err');
+  }
+}
+
+video.addEventListener('timeupdate', () => {
+  const me = job; if (!me || !me.wins || video.paused || !$('#waitSubs').checked) return;
+  const i = K.windowAt(me.wins, video.currentTime, SR);
+  if (i >= 0 && !me.done.has(i)) {
+    me.autopaused = true; video.pause();
+    setStatus('Пауза: готовлю субтитры для этого места, фильм продолжится сам…');
+  }
+});
+video.addEventListener('play', () => { if (job) job.autopaused = false; });
+video.addEventListener('error', () => { if (video.getAttribute('src')) setStatus('Браузер не смог воспроизвести это видео. Попробуй другую ссылку или Chrome.', 'err'); });
+
+$('#form').addEventListener('submit', (e) => { e.preventDefault(); open($('#link').value); });
+$('#demo').addEventListener('click', () => { $('#link').value = decodeURIComponent(DEMO); open(DEMO); });
+$('#dl').addEventListener('click', () => {
+  if (!job || !job.cues.length) return;
+  const cues = [...job.cues].sort((a, b) => a.start - b.start);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([C.toVTT(cues, 'he')], { type: 'text/vtt;charset=utf-8' }));
+  a.download = (job.src.title || 'subtitles') + '.he.vtt'; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+});
+
+const q = new URLSearchParams(location.search).get('v');
+if (q) { $('#link').value = q; open(q); }
+</script>
+<script src="made-by-byd.js"></script>
+</body>
+</html>
