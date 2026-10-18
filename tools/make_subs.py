@@ -55,7 +55,9 @@ def film_key_and_source(link):
         clean = lambda k: re.sub(r'<[^>]+>', '', (meta.get(k) or {}).get('value', '')).strip()
         LICENSE_INFO.update({'license': clean('LicenseShortName'), 'terms': clean('UsageTerms'),
                              'author': clean('Artist')[:200], 'minutes': round((info.get('duration') or 0) / 60)})
-        return 'commons:' + name, (ders[0]['src'] if ders else info['url']), re.sub(r'\.[^.]+$', '', name)
+        # mid-size copy: the smallest transcodes compress the soundtrack too hard for old films
+        mid = min(ders, key=lambda d: abs((d.get('width') or 0) - 640)) if ders else None
+        return 'commons:' + name, (mid['src'] if mid else info['url']), re.sub(r'\.[^.]+$', '', name)
     if host == 'archive.org':
         m = re.match(r'^/(details|download|embed)/([^/?#]+)', u.path)
         ident = urllib.parse.unquote(m.group(2))
@@ -141,11 +143,15 @@ def process(slug, req):
                 f.write(chunk)
         print(f'[{slug}] downloaded {film.stat().st_size // 1048576} MB', flush=True)
         wav = pathlib.Path(tmp) / 'audio.wav'
-        subprocess.run(['ffmpeg', '-nostdin', '-loglevel', 'error', '-i', str(film), '-vn', '-ac', '1', '-ar', '16000', str(wav)], check=True)
+        subprocess.run(['ffmpeg', '-nostdin', '-loglevel', 'error', '-i', str(film), '-vn', '-af', 'highpass=f=80,loudnorm', '-ac', '1', '-ar', '16000', str(wav)], check=True)
         from faster_whisper import WhisperModel
         model = WhisperModel(MODEL, device='cpu', compute_type='int8')
+        # gentle voice detection: old films mix speech with music and noise
         segments, info = model.transcribe(str(wav), language='ru', beam_size=5, vad_filter=True,
-                                          word_timestamps=True, condition_on_previous_text=False)
+                                          vad_parameters={'threshold': 0.2, 'min_speech_duration_ms': 120,
+                                                          'min_silence_duration_ms': 600, 'speech_pad_ms': 500},
+                                          word_timestamps=True, condition_on_previous_text=False,
+                                          no_speech_threshold=0.7, log_prob_threshold=-1.2)
         words = []
         for seg in segments:
             for w in seg.words or []:
