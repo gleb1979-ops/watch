@@ -26,7 +26,16 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .chip{font-size:14px;padding:6px 12px;border-radius:99px}
 .player{margin-top:16px;display:none}
 .player h2{font-size:19px;margin:0 0 8px}
-video{width:100%;aspect-ratio:16/9;background:#000;border-radius:14px;display:block}
+.stage{position:relative;width:100%;aspect-ratio:16/9;background:#000;border-radius:14px;overflow:hidden}
+.stage video,#embed,#embed iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+#embed{display:none}
+.subs{position:absolute;left:4%;right:4%;bottom:14%;text-align:center;pointer-events:none;font-size:clamp(14px,3.4vw,26px);line-height:1.35;z-index:2}
+.subs span{display:inline-block;background:rgba(0,0,0,.78);color:#fff;padding:.12em .5em;border-radius:6px;margin:2px 0;white-space:pre-line}
+.subs span.ru{font-size:.85em;opacity:.92}
+.fs{position:absolute;top:8px;right:8px;z-index:3;display:none;padding:4px 10px;font-size:18px;background:rgba(0,0,0,.55);color:#fff;border:0}
+.stage.embed .fs{display:block}
+.stage.full{position:fixed;inset:0;z-index:50;border-radius:0;aspect-ratio:auto;width:100vw;height:100vh;height:100dvh}
+.stage:fullscreen{border-radius:0}
 video::cue{font-family:Rubik,Arial,sans-serif;font-size:1.1em;line-height:1.35;background:rgba(0,0,0,.75);color:#fff}
 .progress{height:6px;border-radius:99px;background:var(--surface-2);overflow:hidden;margin-top:12px}
 .progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .3s}
@@ -59,7 +68,12 @@ details p{margin:8px 0}
 
   <section class="player" id="player">
     <h2 id="title"></h2>
-    <video id="video" controls playsinline preload="metadata"></video>
+    <div class="stage" id="stage">
+      <video id="video" controls playsinline preload="metadata"></video>
+      <div id="embed"></div>
+      <div class="subs" id="subs"></div>
+      <button type="button" class="fs" id="fsBtn" title="Во весь экран" aria-label="Во весь экран">⛶</button>
+    </div>
     <div class="progress"><i id="pbar"></i></div>
     <div id="status"></div>
     <div class="tools">
@@ -75,8 +89,8 @@ details p{margin:8px 0}
   </section>
 
   <div class="note" id="howto">
-    <b>Какие ссылки работают сейчас:</b> Wikimedia Commons, Internet Archive (archive.org) и прямые ссылки на видеофайлы (.mp4, .webm). YouTube, VK Видео и Rutube — в следующей версии.<br>
-    Перевод — Google Переводчик. Фильмы из списка выше уже подготовлены и работают на телефоне. Новые ссылки обрабатываются автоматически на компьютере в Chrome.
+    <b>Какие ссылки работают:</b> YouTube, VK Видео, Rutube, Wikimedia Commons, Internet Archive (archive.org) и прямые ссылки на видеофайлы (.mp4, .webm).<br>
+    Фильмы из списка выше уже подготовлены и сразу открываются с ивритом, в том числе на телефоне. Перевод — Google Переводчик.
   </div>
 
   <details>
@@ -292,9 +306,21 @@ details p{margin:8px 0}
       if (m) return { kind: 'archive', id: decodeURIComponent(m[2]) };
       return { kind: 'unknown', host: h };
     }
-    if (/(^|\.)youtube\.com$/.test(h) || h === 'youtu.be') return { kind: 'youtube' };
-    if (/(^|\.)(vk\.com|vk\.ru|vkvideo\.ru)$/.test(h)) return { kind: 'vk' };
-    if (/(^|\.)rutube\.ru$/.test(h)) return { kind: 'rutube' };
+    if (/(^|\.)youtube(-nocookie)?\.com$/.test(h) || h === 'youtu.be') {
+      var yid = h === 'youtu.be' ? u.pathname.split('/')[1] : (u.searchParams.get('v') || (u.pathname.match(/^\/(?:shorts|embed|live|v)\/([\w-]+)/) || [])[1]);
+      return yid && /^[\w-]{6,20}$/.test(yid) ? { kind: 'youtube', id: yid } : { kind: 'unknown', host: h };
+    }
+    if (/(^|\.)rutube\.ru$/.test(h)) {
+      var rid = (u.pathname.match(/\/(?:video(?:\/private)?|play\/embed)\/([0-9a-f]{32})/i) || [])[1];
+      return rid ? { kind: 'rutube', id: rid.toLowerCase() } : { kind: 'unknown', host: h };
+    }
+    if (/(^|\.)(vk\.com|vk\.ru|vkvideo\.ru)$/.test(h)) {
+      var oid, vid, vm2;
+      if (/video_ext\.php$/.test(u.pathname)) { oid = u.searchParams.get('oid'); vid = u.searchParams.get('id'); }
+      else if ((vm2 = (u.pathname + ' ' + (u.searchParams.get('z') || '')).match(/video(-?\d+)_(\d+)/))) { oid = vm2[1]; vid = vm2[2]; }
+      if (oid && vid && /^-?\d+$/.test(oid) && /^\d+$/.test(vid)) return { kind: 'vk', id: oid + '_' + vid, oid: oid, vid: vid, hash: u.searchParams.get('hash') || '' };
+      return { kind: 'unknown', host: h };
+    }
     if (/\.(mp4|m4v|webm|ogv|mov)$/i.test(u.pathname)) return { kind: 'direct', url: u.href };
     return { kind: 'unknown', host: h };
   }
@@ -341,7 +367,14 @@ details p{margin:8px 0}
     if (k.kind === 'commons') return 'commons:' + k.file.replace(/_/g, ' ').trim();
     if (k.kind === 'archive') return 'archive:' + k.id;
     if (k.kind === 'direct') return 'url:' + k.url;
+    if (k.kind === 'youtube' || k.kind === 'rutube' || k.kind === 'vk') return k.kind + ':' + k.id;
     return '';
+  }
+  // cue under time t in a start-sorted list (binary search)
+  function findCue(cues, t) {
+    var lo = 0, hi = cues.length - 1, best = -1;
+    while (lo <= hi) { var mid = (lo + hi) >> 1; if (cues[mid].start <= t) { best = mid; lo = mid + 1; } else hi = mid - 1; }
+    return best >= 0 && t < cues[best].end ? cues[best] : null;
   }
   // split lines into batches whose joined, URL-encoded length stays under `limit`
   function textBatches(lines, limit) {
@@ -368,7 +401,7 @@ details p{margin:8px 0}
     var plays = [url(play)]; if (url(pool[0]) !== plays[0]) plays.push(url(pool[0]));
     return { play: plays[0], plays: plays, audio: url(pool[0]), title: (meta.metadata && [].concat(meta.metadata.title)[0]) || meta.metadata.identifier };
   }
-  g.CinemaCore = { classifyLink: classifyLink, nextWindow: nextWindow, windowAt: windowAt, readyUntil: readyUntil, parseGoogle: parseGoogle, pickCommons: pickCommons, pickArchive: pickArchive, filmKey: filmKey, textBatches: textBatches };
+  g.CinemaCore = { classifyLink: classifyLink, nextWindow: nextWindow, windowAt: windowAt, readyUntil: readyUntil, parseGoogle: parseGoogle, pickCommons: pickCommons, pickArchive: pickArchive, filmKey: filmKey, textBatches: textBatches, findCue: findCue };
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 
@@ -535,7 +568,7 @@ async function playPrepared(me, entry) {
   const todo = ru.map((_, i) => i).filter((i) => !he[i]);
   if (!todo.length) { $('#dl').disabled = false; setBar(100); setStatus('Субтитры на иврите готовы — нажми Play.', 'ok'); return; }
   // translate the part near the playhead first, then the rest
-  const now = video.currentTime || 0;
+  const now = nowTime();
   todo.sort((a, b) => (ru[a].end < now) - (ru[b].end < now) || a - b);
   const batches = K.textBatches(todo.map((i) => ru[i].text), 6000).map((b) => b.map((n) => todo[n]));
   let done = ru.length - todo.length;
@@ -576,9 +609,8 @@ async function renderCatalog() {
 async function resolve(link) {
   const k = K.classifyLink(link);
   if (k.kind === 'bad') throw new Error('Это не похоже на ссылку. Скопируй адрес страницы с фильмом целиком.');
-  if (k.kind === 'youtube' || k.kind === 'vk' || k.kind === 'rutube')
-    throw new Error('YouTube, VK Видео и Rutube появятся в следующей версии. Сейчас работают Wikimedia Commons, Internet Archive и прямые ссылки на видеофайлы.');
-  if (k.kind === 'unknown') throw new Error(`Сайт ${k.host} пока не поддерживается. Сейчас работают Wikimedia Commons, Internet Archive и прямые ссылки на видеофайлы.`);
+  if (k.kind === 'youtube' || k.kind === 'vk' || k.kind === 'rutube') return { mode: 'embed', k, key: K.filmKey(k), title: '' };
+  if (k.kind === 'unknown') throw new Error(`Сайт ${k.host} не поддерживается. Работают YouTube, VK Видео, Rutube, Wikimedia Commons, Internet Archive и прямые ссылки на видеофайлы.`);
   if (k.kind === 'direct') return { key: K.filmKey(k), play: k.url, plays: [k.url], audio: k.url, title: decodeURIComponent(k.url.split('/').pop().split('?')[0]).replace(/\.[^.]+$/, '') };
   if (k.kind === 'commons') {
     const api = 'https://commons.wikimedia.org/w/api.php?action=query&prop=videoinfo&viprop=url%7Cderivatives&titles=' + encodeURIComponent('File:' + k.file) + '&format=json&origin=*';
@@ -634,6 +666,96 @@ async function fetchAudio(url) {
   } finally { try { ctx.close(); } catch (e) {} }
 }
 
+/* ---------- embedded players (YouTube / VK Видео / Rutube) ---------- */
+let embedPlayer = null, overlayTimer = 0;
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[src="${src}"]`)) return res();
+    const s = document.createElement('script'); s.src = src; s.async = true;
+    s.onload = () => res(); s.onerror = () => rej(new Error('Не загрузился плеер'));
+    document.head.appendChild(s);
+  });
+}
+function clearEmbed() {
+  clearInterval(overlayTimer);
+  if (embedPlayer) { try { embedPlayer.destroy(); } catch (e) {} embedPlayer = null; }
+  $('#embed').innerHTML = ''; $('#embed').style.display = 'none'; $('#subs').innerHTML = '';
+  $('#stage').classList.remove('embed');
+  video.style.display = 'block';
+}
+async function mountYouTube(id) {
+  if (!(window.YT && window.YT.Player)) {
+    await new Promise((res, rej) => {
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = () => { if (prev) try { prev(); } catch (e) {} res(); };
+      loadScript('https://www.youtube.com/iframe_api').catch(rej);
+      setTimeout(() => rej(new Error('YouTube не ответил. Проверь интернет.')), 20000);
+    });
+  }
+  const holder = document.createElement('div'); $('#embed').appendChild(holder);
+  const p = new YT.Player(holder, { videoId: id, width: '100%', height: '100%',
+    playerVars: { playsinline: 1, rel: 0, cc_load_policy: 0, iv_load_policy: 3, fs: 0 } });
+  return { getTime: () => { try { const t = p.getCurrentTime(); return typeof t === 'number' ? t : null; } catch (e) { return null; } }, destroy: () => p.destroy() };
+}
+function mountRutube(id) {
+  const f = document.createElement('iframe');
+  f.src = 'https://rutube.ru/play/embed/' + id;
+  f.allow = 'clipboard-write; autoplay; encrypted-media; picture-in-picture';
+  $('#embed').appendChild(f);
+  let t = null, at = 0, playing = false;
+  const onMsg = (e) => {
+    let host = ''; try { host = new URL(e.origin).hostname; } catch (x) { return; }
+    if (!/(^|\.)rutube\.ru$/.test(host)) return;
+    let m = e.data; try { if (typeof m === 'string') m = JSON.parse(m); } catch (x) { return; }
+    if (!m || !m.type) return;
+    if (m.type === 'player:currentTime' && m.data && m.data.time != null) { t = +m.data.time; at = performance.now(); }
+    if (m.type === 'player:changeState' && m.data) playing = m.data.state === 'playing';
+  };
+  addEventListener('message', onMsg);
+  return { getTime: () => (t == null ? null : t + (playing ? Math.min(1.5, (performance.now() - at) / 1000) : 0)), destroy: () => removeEventListener('message', onMsg) };
+}
+async function mountVK(k, entry) {
+  let src = (entry && entry.embed) || `https://vkvideo.ru/video_ext.php?oid=${k.oid}&id=${k.vid}${k.hash ? '&hash=' + encodeURIComponent(k.hash) : ''}&hd=2`;
+  src += (src.includes('?') ? '&' : '?') + 'js_api=1';
+  const f = document.createElement('iframe');
+  f.src = src; f.allow = 'autoplay; encrypted-media; fullscreen; picture-in-picture; screen-wake-lock';
+  $('#embed').appendChild(f);
+  let p = null;
+  try { await loadScript('https://vk.com/js/api/videoplayer.js'); p = window.VK && VK.VideoPlayer ? VK.VideoPlayer(f) : null; } catch (e) {}
+  return { getTime: () => { try { return p ? p.getCurrentTime() : null; } catch (e) { return null; } }, destroy: () => { try { p && p.destroy && p.destroy(); } catch (e) {} } };
+}
+async function mountEmbed(k, entry) {
+  clearEmbed();
+  video.pause(); video.removeAttribute('src'); video.load(); video.style.display = 'none';
+  $('#embed').style.display = 'block'; $('#stage').classList.add('embed');
+  embedPlayer = k.kind === 'youtube' ? await mountYouTube(k.id) : k.kind === 'rutube' ? mountRutube(k.id) : await mountVK(k, entry);
+}
+function startOverlay(me) {
+  clearInterval(overlayTimer);
+  const el = $('#subs'); let last = '';
+  overlayTimer = setInterval(() => {
+    if (job !== me || !embedPlayer) return;
+    const t = embedPlayer.getTime();
+    let html = '';
+    const c = t == null ? null : K.findCue(me.sorted(), t);
+    if (c) {
+      if (c.he) html += `<span dir="rtl" lang="he">${escHtml(C.wrapLines(c.he))}</span>`;
+      if ($('#showRu').checked && c.ru) html += (html ? '<br>' : '') + `<span class="ru" lang="ru">${escHtml(C.wrapLines(c.ru))}</span>`;
+    }
+    if (html !== last) { el.innerHTML = html; last = html; }
+  }, 200);
+}
+function escHtml(s) { return String(s).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch])); }
+function nowTime() { if (embedPlayer) { const t = embedPlayer.getTime(); return t || 0; } return video.currentTime || 0; }
+$('#fsBtn').addEventListener('click', async () => {
+  const st = $('#stage');
+  if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+  if (st.classList.contains('full')) { st.classList.remove('full'); return; }
+  try { if (st.requestFullscreen) { await st.requestFullscreen(); return; } } catch (e) {}
+  st.classList.add('full'); // iPhone: no element fullscreen, fill the screen instead
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') $('#stage').classList.remove('full'); });
+
 /* ---------- subtitles in the player ---------- */
 function makeTracks() {
   for (const t of video.textTracks) t.mode = 'disabled';
@@ -643,11 +765,12 @@ function makeTracks() {
   return { he, ru };
 }
 function addCue(c) {
+  if (job && job.mode === 'embed') { job.dirty = true; return; }
   const Cue = window.VTTCue || window.TextTrackCue;
   if (c.he) { const x = new Cue(c.start, c.end, C.wrapLines(c.he).split('\n').map((l) => '‏' + l + '‏').join('\n')); x.line = -2; job.tracks.he.addCue(x); }
   if (c.ru) { const y = new Cue(c.start, c.end, C.wrapLines(c.ru)); y.line = -4; job.tracks.ru.addCue(y); }
 }
-$('#showRu').addEventListener('change', () => { if (job) job.tracks.ru.mode = $('#showRu').checked ? 'showing' : 'hidden'; });
+$('#showRu').addEventListener('change', () => { if (job && job.tracks) job.tracks.ru.mode = $('#showRu').checked ? 'showing' : 'hidden'; });
 
 /* ---------- main flow ---------- */
 async function open(link) {
@@ -658,8 +781,26 @@ async function open(link) {
   setBar(0); setStatus('Открываю ссылку…');
   let src;
   try { src = await resolve(link); } catch (e) { setStatus(e.message, 'err'); video.removeAttribute('src'); video.load(); return; }
-  const me = { link, src, cancel: false, cues: [], done: new Set(), wins: null, total: 0, autopaused: false, plays: src.plays || [src.play], playIdx: 0 };
+  const me = { link, src, cancel: false, cues: [], done: new Set(), wins: null, total: 0, autopaused: false, plays: src.plays || [src.play], playIdx: 0,
+    mode: src.mode || 'video', dirty: false, sortedCues: [] };
+  me.sorted = () => { if (me.dirty) { me.sortedCues = [...me.cues].sort((a, b) => a.start - b.start); me.dirty = false; } return me.sortedCues; };
   job = me;
+  if (me.mode === 'embed') {
+    history.replaceState(null, '', '?v=' + encodeURIComponent(link));
+    const entry = (await getCatalog()).find((e) => e.key === src.key);
+    $('#title').textContent = entry ? entry.title : '';
+    document.title = (entry ? entry.title + ' — ' : '') + 'B.Y.D Cinema';
+    try { await mountEmbed(src.k, entry); } catch (e) { setStatus(e.message || String(e), 'err'); return; }
+    if (job !== me) return;
+    startOverlay(me);
+    if (!entry) {
+      setStatus('Видео открыто. Субтитры для этого фильма ещё не подготовлены: пришли ссылку в B.Y.D — фильм добавят в каталог, обычно за 15–30 минут.', 'err');
+      return;
+    }
+    try { await playPrepared(me, entry); } catch (e) { if (!me.cancel) setStatus(e.message || String(e), 'err'); }
+    return;
+  }
+  clearEmbed();
   $('#title').textContent = src.title || '';
   document.title = (src.title ? src.title + ' — ' : '') + 'B.Y.D Cinema';
   video.src = me.plays[0]; video.load();

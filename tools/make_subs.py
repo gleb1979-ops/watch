@@ -130,35 +130,115 @@ def write_json(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
 
 
+def platform_key(link):
+    """YouTube / Rutube / VK Видео link -> (kind, id, embed) like classifyLink() in cinema.html, else None."""
+    u = urllib.parse.urlparse(link.strip())
+    host = re.sub(r'^(www|m)\.', '', u.netloc.lower())
+    qs = urllib.parse.parse_qs(u.query)
+    if re.search(r'(^|\.)youtube(-nocookie)?\.com$', host) or host == 'youtu.be':
+        vid = u.path.split('/')[1] if host == 'youtu.be' else (qs.get('v', [None])[0] or (re.match(r'^/(?:shorts|embed|live|v)/([\w-]+)', u.path) or [None, None])[1])
+        return ('youtube', vid, None) if vid and re.fullmatch(r'[\w-]{6,20}', vid) else None
+    if re.search(r'(^|\.)rutube\.ru$', host):
+        m = re.search(r'/(?:video(?:/private)?|play/embed)/([0-9a-f]{32})', u.path, re.I)
+        return ('rutube', m.group(1).lower(), None) if m else None
+    if re.search(r'(^|\.)(vk\.com|vk\.ru|vkvideo\.ru)$', host):
+        if u.path.endswith('video_ext.php'):
+            oid, vid = qs.get('oid', [None])[0], qs.get('id', [None])[0]
+            if oid and vid:
+                return 'vk', f'{oid}_{vid}', link.strip()  # export link carries the hash the embed needs
+        m = re.search(r'video(-?\d+)_(\d+)', u.path + ' ' + qs.get('z', [''])[0])
+        return ('vk', f'{m.group(1)}_{m.group(2)}', None) if m else None
+    return None
+
+
+def ytdlp(*args):
+    return subprocess.run(['yt-dlp', '--no-warnings', '--no-playlist', *args], capture_output=True, text=True, check=True).stdout
+
+
+def page_url(kind, vid):
+    return {'youtube': f'https://www.youtube.com/watch?v={vid}', 'rutube': f'https://rutube.ru/video/{vid}/',
+            'vk': f'https://vkvideo.ru/video{vid}'}[kind]
+
+
+def vtt_to_cues(text):
+    """Official subtitles (VTT) -> cues; strips styling and karaoke duplicates."""
+    cues = []
+    for block in re.split(r'\n\s*\n', text.replace('\r', '')):
+        m = re.search(r'(\d+:)?(\d\d):(\d\d)[.,](\d{3}) --> (\d+:)?(\d\d):(\d\d)[.,](\d{3})', block)
+        if not m:
+            continue
+        g = m.groups()
+        start = int((g[0] or '0:')[:-1]) * 3600 + int(g[1]) * 60 + int(g[2]) + int(g[3]) / 1000
+        end = int((g[4] or '0:')[:-1]) * 3600 + int(g[5]) * 60 + int(g[6]) + int(g[7]) / 1000
+        body = block[m.end():].split('\n', 1)[1] if '\n' in block[m.end():] else ''
+        body = re.sub(r'<[^>]+>', '', body)
+        body = re.sub(r'\s+', ' ', body).strip()
+        if body and not any(r.search(body) for r in JUNK) and not (cues and cues[-1]['text'] == body):
+            cues.append({'start': start, 'end': end, 'text': body})
+    return cues
+
+
+def transcribe(slug, media, req):
+    wav = media.parent / 'audio.wav'
+    subprocess.run(['ffmpeg', '-nostdin', '-loglevel', 'error', '-y', '-i', str(media), '-vn', '-af', 'highpass=f=80,loudnorm', '-ac', '1', '-ar', '16000', str(wav)], check=True)
+    from faster_whisper import WhisperModel
+    model = WhisperModel(MODEL, device='cpu', compute_type='int8')
+    use_vad = req.get('vad', False)  # voice detection drops speech under music; off unless a film asks for it
+    segments, info = model.transcribe(str(wav), language='ru', beam_size=5, vad_filter=use_vad,
+                                      vad_parameters={'threshold': 0.2, 'min_speech_duration_ms': 120,
+                                                      'min_silence_duration_ms': 600, 'speech_pad_ms': 500},
+                                      word_timestamps=True, condition_on_previous_text=False,
+                                      no_speech_threshold=0.7, log_prob_threshold=-1.2)
+    words = []
+    for seg in segments:
+        for w in seg.words or []:
+            words.append({'word': w.word, 'start': w.start, 'end': w.end})
+        print(f'[{slug}] {fmt(seg.end)} / {fmt(info.duration)}  {seg.text.strip()[:70]}', flush=True)
+    return words_to_cues(words)
+
+
 def process(slug, req):
     status = SUBS / 'status' / f'{slug}.json'
     LICENSE_INFO.clear()
     write_json(status, {'state': 'working', 'started': int(time.time())})
-    key, src, title_guess = film_key_and_source(req['link'])
-    print(f'[{slug}] key={key}\n[{slug}] downloading {src}', flush=True)
+    plat = platform_key(req['link'])
+    embed = None
     with tempfile.TemporaryDirectory() as tmp:
-        film = pathlib.Path(tmp) / 'film'
-        with get(src, timeout=600) as r, open(film, 'wb') as f:
-            while chunk := r.read(1 << 20):
-                f.write(chunk)
-        print(f'[{slug}] downloaded {film.stat().st_size // 1048576} MB', flush=True)
-        wav = pathlib.Path(tmp) / 'audio.wav'
-        subprocess.run(['ffmpeg', '-nostdin', '-loglevel', 'error', '-i', str(film), '-vn', '-af', 'highpass=f=80,loudnorm', '-ac', '1', '-ar', '16000', str(wav)], check=True)
-        from faster_whisper import WhisperModel
-        model = WhisperModel(MODEL, device='cpu', compute_type='int8')
-        # gentle voice detection: old films mix speech with music and noise
-        use_vad = req.get('vad', False)  # voice detection drops speech under music; off unless a film asks for it
-        segments, info = model.transcribe(str(wav), language='ru', beam_size=5, vad_filter=use_vad,
-                                          vad_parameters={'threshold': 0.2, 'min_speech_duration_ms': 120,
-                                                          'min_silence_duration_ms': 600, 'speech_pad_ms': 500},
-                                          word_timestamps=True, condition_on_previous_text=False,
-                                          no_speech_threshold=0.7, log_prob_threshold=-1.2)
-        words = []
-        for seg in segments:
-            for w in seg.words or []:
-                words.append({'word': w.word, 'start': w.start, 'end': w.end})
-            print(f'[{slug}] {fmt(seg.end)} / {fmt(info.duration)}  {seg.text.strip()[:70]}', flush=True)
-    cues = words_to_cues(words)
+        tmp = pathlib.Path(tmp)
+        if plat:
+            kind, vid, embed = plat
+            key = f'{kind}:{vid}'
+            url = page_url(kind, vid)
+            print(f'[{slug}] key={key}\n[{slug}] reading {url}', flush=True)
+            info = json.loads(ytdlp('-J', url))
+            title_guess = info.get('title') or vid
+            LICENSE_INFO.update({'uploader': info.get('channel') or info.get('uploader') or '',
+                                 'channel_url': info.get('channel_url') or info.get('uploader_url') or '',
+                                 'license': info.get('license') or '', 'minutes': round((info.get('duration') or 0) / 60)})
+            print(f'[{slug}] uploader: {LICENSE_INFO["uploader"]} {LICENSE_INFO["channel_url"]}', flush=True)
+            cues = []
+            if 'ru' in (info.get('subtitles') or {}):  # the owner's own Russian subtitles are better than recognition
+                ytdlp('--skip-download', '--write-subs', '--sub-langs', 'ru', '--sub-format', 'vtt/best', '--convert-subs', 'vtt', '-o', str(tmp / 'sub.%(ext)s'), url)
+                subs = list(tmp.glob('sub*.vtt'))
+                if subs:
+                    cues = vtt_to_cues(subs[0].read_text(encoding='utf-8', errors='replace'))
+                    LICENSE_INFO['text_source'] = 'official subtitles'
+            if not cues:
+                ytdlp('-f', 'bestaudio/best', '-o', str(tmp / 'media.%(ext)s'), url)
+                media = next(p for p in tmp.iterdir() if p.name.startswith('media.'))
+                print(f'[{slug}] downloaded audio {media.stat().st_size // 1048576} MB', flush=True)
+                cues = transcribe(slug, media, req)
+                LICENSE_INFO['text_source'] = 'speech recognition'
+        else:
+            key, src, title_guess = film_key_and_source(req['link'])
+            print(f'[{slug}] key={key}\n[{slug}] downloading {src}', flush=True)
+            film = tmp / 'film'
+            with get(src, timeout=600) as r, open(film, 'wb') as f:
+                while chunk := r.read(1 << 20):
+                    f.write(chunk)
+            print(f'[{slug}] downloaded {film.stat().st_size // 1048576} MB', flush=True)
+            cues = transcribe(slug, film, req)
+            LICENSE_INFO['text_source'] = 'speech recognition'
     if not cues:
         raise RuntimeError('no speech recognized')
     (SUBS / f'{slug}.ru.vtt').write_text(to_vtt(cues), encoding='utf-8')
@@ -170,6 +250,10 @@ def process(slug, req):
     for extra in ('year', 'minutes', 'license'):
         if req.get(extra) or LICENSE_INFO.get(extra):
             entry[extra] = req.get(extra) or LICENSE_INFO.get(extra)
+    if LICENSE_INFO.get('uploader'):
+        entry['uploader'] = LICENSE_INFO['uploader']
+    if embed:
+        entry['embed'] = embed
     catalog = [e for e in catalog if e['key'] != key] + [entry]
     write_json(cat_path, catalog)
     write_json(status, {'state': 'done', 'cues': len(cues), 'model': MODEL, 'source_license': LICENSE_INFO, 'finished': int(time.time())})
