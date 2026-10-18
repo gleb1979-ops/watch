@@ -8,5 +8,15 @@
   "year": 2020,
   "minutes": 8,
   "license": "CC BY 3.0, LISART Studios"
+ },
+ {
+  "key": "commons:1939. Золотой ключик.webm",
+  "title": "Золотой ключик (1939)",
+  "link": "https://commons.wikimedia.org/wiki/File:1939._%D0%97%D0%BE%D0%BB%D0%BE%D1%82%D0%BE%D0%B9_%D0%BA%D0%BB%D1%8E%D1%87%D0%B8%D0%BA.webm",
+  "ru": "subs/zolotoy-klyuchik.ru.vtt",
+  "version": 1,
+  "year": 1939,
+  "minutes": 79,
+  "license": "Public domain"
  }
 ]
